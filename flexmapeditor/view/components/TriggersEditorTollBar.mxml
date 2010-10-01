@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+	barre d'outils edition des triggers
+-->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+		xmlns:view="flexmapeditor.view.components.*"
+		creationComplete="completeHandler()">		
+		<mx:Script>
+		<![CDATA[
+		
+			import flash.events.MouseEvent;
+			import mx.events.ItemClickEvent;
+			import mx.managers.PopUpManager;
+			
+			[Embed("icons/icon_wand.gif")]
+			private var buttonIcon:Class;
+			
+			[Bindable]
+			public var buttonList:Array;	// liste des datas boutons
+			
+			private function completeHandler():void
+			{
+				
+				buttonList = [	{icon:buttonIcon, toolTip:"éditer la grille de collisions", id:"edCollisions"},
+								{icon:buttonIcon, toolTip:"éditer les actions", id:"edTriggers", toggle:"true"},
+								{icon:buttonIcon, toolTip:"ajouter une cellule action", id:"addCellTrigger"} ];
+			}
+			
+		 ]]>
+		</mx:Script>
+
+		<mx:Number id="buttonWidth">30</mx:Number>
+		<mx:Button id="btnShowHideCellTrigger" width="{buttonWidth}"
+		            label="" icon="@Embed('icons/lightning.png')" toolTip="afficher/masquer les actions sur grille" toggle="true" />
+		<mx:Button id="btnAddCellTrigger" width="{buttonWidth}"
+		            label="A" icon="@Embed('icons/lightning_add.png')" toolTip="ajouter/supprimer des actions sur grille" toggle="true"/>
+		<mx:Button id="btnMoveCellTrigger" width="{buttonWidth}"
+		            label="A" icon="@Embed('icons/lightning_go.png')" toolTip="déplacer les actions sur grille" toggle="true"/>
+		
+</mx:VBox>

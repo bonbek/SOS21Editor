@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		import mx.controls.textClasses.TextRange;
+		import net.anirudh.as3syntaxhighlight.CodePrettyPrint;
+		import mx.managers.PopUpManager;
+		import flexmapeditor.view.components.ScriptEditor;
+		
+		private var cssString:String =".spl {font-family:sandboxcode;color: #4f94cd;} .str { font-family:sandboxcode; color: #880000; } .kwd { font-family:sandboxcode; color: #000088; } .com { font-family:sandboxcode; color: #008800; } .typ { font-family:sandboxcode; color: #0068CF; } .lit { font-family:sandboxcode; color: #006666; } .pun { font-family:sandboxcode; color: #666600; } .pln { font-family:sandboxcode; color: #222222; } .tag { font-family:sandboxcode; color: #000088; } .atn { font-family:sandboxcode; color: #660066; } .atv { font-family:sandboxcode; color: #880000; } .dec { font-family:sandboxcode; color: #660066; } ";
+		private var codeStyle:StyleSheet;
+		private var codePrettyPrint:CodePrettyPrint;
+		private var codeTimer:Timer;
+		
+		
+		/**
+		 *	Formulaire additionnel pour script
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		[Bindable]
+		public var script:String;
+		
+		private var firstInit:Boolean = true;
+		// trigger en pris en charge par cette instances
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave() : void
+		{
+			updateOnSave();
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments() : Array
+		{
+			return ["script"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+			var args:Object = _trigger.arguments;
+			if (ta_script.text.length > 1)
+				args["script"] = ta_script.text.replace(/[\t\r\n\v\f]/g, "");
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete () : void
+		{
+			ta_script.text = "";
+			var args:Object = _trigger.arguments;
+			if ("script" in args)
+			{
+				var ts:String = args['script'].replace(/[{]/g,"{\n\t");
+				ts = ts.replace(/[}]/g,"\n}\n");
+				ts = ts.replace(/;(?=\w)/g,";\n");
+				
+				script = ts;
+			}
+		}
+		
+		private function codeHighlight():void
+		{
+			if ( !codeTimer )
+			{
+		    codeTimer = new Timer(200,1);
+		    codeTimer.addEventListener(TimerEvent.TIMER, doPrettyPrint);
+				
+			}	
+		
+		    if ( codeTimer.running )
+		    {
+		        codeTimer.stop();
+		    }
+		    codeTimer.reset();
+		    // wait for some time to see if we need to highlight or not
+		    codeTimer.start();
+		}
+		
+		private function processFormattedCode(startIdx:int, endIdx:int, optIdx:int=0):void
+		{			
+		    var srclen:int = endIdx - startIdx;
+		    var arr:Array = codePrettyPrint.mainDecorations;
+		    if ( arr == null || srclen < 1 ) 
+		    {
+		        return;
+		    }
+		    
+		    var len:int = arr.length;
+		    var firstNode:Boolean = false;
+		    var tr:TextRange;
+		    var thecolor:Object;
+		    var firstIndex:int = 0;
+		    for ( var i:int = optIdx; i < len; i+=2 )
+		    {
+		        /* find first node */
+		        if ( arr[i] == 0 )
+		        {					
+		            continue;
+		        }
+		        else if ( firstNode == false )
+		        {
+		            firstNode = true;
+		            firstIndex = i;
+		            
+		        } 
+		        if ( i - 2 > 0 )
+		        {
+		            tr = new TextRange(ta_script, false, arr[i-2] + startIdx, arr[i] + startIdx);
+		            thecolor = codeStyle.getStyle("." + arr[i-1]).color;
+		            tr.color = thecolor;
+		        }
+		        
+		    }
+		    if ( i > 0 )
+		    {
+		        i -= 2;
+		        if ( arr[i] + startIdx < endIdx )
+		        {
+		            tr = new TextRange(ta_script, false, arr[i] + startIdx, endIdx);
+		            thecolor = codeStyle.getStyle("." + arr[i+1]).color;
+		            tr.color = thecolor;
+		        }
+		    }			
+		    
+		}
+	
+		
+		private function doPrettyPrint(event:TimerEvent):void
+		{
+			if ( !codeStyle )
+			{
+				codeStyle = new StyleSheet();
+				codePrettyPrint = new CodePrettyPrint();
+				codeStyle.parseCSS(cssString);
+			}
+			
+			codePrettyPrint.prettyPrintOne(ta_script.text, null, false);
+			processFormattedCode(0, ta_script.length);
+			//trace(res);			
+		}
+
+		private function openEditor() : void
+		{
+			var pp:ScriptEditor = PopUpManager.createPopUp(parentApplication.viewport, ScriptEditor) as ScriptEditor;
+			PopUpManager.centerPopUp(pp);
+			pp.script = script;
+		}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:HBox>
+		<mx:Label text="script: " />
+		<mx:Button icon="@Embed('icons/disk.png')" click="openEditor()" />
+	</mx:HBox>
+	<mx:TextArea id="ta_script"  
+		width="100%" height="100%"
+		styleName="codeTextArea"
+		text="{script}"
+		visible="true" includeInLayout="true" 
+			keyFocusChange="event.preventDefault();event.target.replaceSelectedText('\t');"
+			creationComplete="codeHighlight()" change="codeHighlight()" editable="true" fontSize="13" />
+</mx:VBox>

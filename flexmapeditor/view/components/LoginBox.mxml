@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
+	paddingTop="20" paddingLeft="20" paddingBottom="20" paddingRight="20"
+	creationComplete="onCreationComplete(event);">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		
+		/**
+		 *	Description
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2009-09-07
+		 */
+
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete(event:FlexEvent) : void {}
+
+	    ]]>
+	</mx:Script>
+
+	<mx:Label text="nom d'utilisateur: " />
+	<mx:TextInput id="username" />
+	<mx:Label text="mot de passe: " />
+	<mx:TextInput id="password" displayAsPassword="true" />
+	<mx:Button id="validateBtn" label="connexion" width="100%" />
+</mx:Panel>

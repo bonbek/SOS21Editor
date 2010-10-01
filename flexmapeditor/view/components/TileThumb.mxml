@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="70" height="70"
+	creationComplete="onCreationComplete(); ">
+	
+	<mx:Script>
+		<![CDATA[
+		
+		import flash.events.Event;
+		import flash.display.Loader;
+		import flash.net.URLRequest;
+		import flash.display.DisplayObject;
+		
+		import flash.display.BitmapData;
+		import flash.geom.Matrix;
+		
+		private var loader:Loader;
+		
+		public function loaderHandler(event:Event = null):void
+		{
+//			event.target.removeEventListener(Event.COMPLETE, loaderHandler, false);
+//			var dob:DisplayObject = event.target.loader.content;
+			try {
+			var dob:DisplayObject = data.asset.content;
+			var m:int = Math.max(dob.width, dob.height);
+			// tricheur !!
+			var ratio:Number = m / 60;
+			if (ratio > 1)
+			{
+				dob.width = dob.width / ratio;
+				dob.height = dob.height / ratio;
+				ratio = dob.scaleX;
+			}
+			var bitmapdata:BitmapData = new BitmapData(60, 60, true, 0);
+			var bounds:Object = dob.getBounds(dob);
+			var mtx:Matrix = new Matrix();
+			var tx:Number = -bounds.left;
+			var ty:Number = -bounds.top;
+			mtx.translate(tx, ty);
+			mtx.scale(ratio, ratio);
+			tx = ((70 - dob.width) / 2);
+			ty = ((70 - dob.height) / 2);
+			mtx.translate(tx, ty)
+			bitmapdata.draw(dob, mtx, null, null, null, true);
+			graphics.beginBitmapFill(bitmapdata, null, true, true);
+    		graphics.drawRect(5, 5, 60, 60);
+      		graphics.endFill();
+			dob.scaleX = dob.scaleY = 1;
+			trace("--- display > ", data.url);
+			} catch (e:Error) {
+				trace("--- display > ", "ERREUR");
+			}
+//			parentApplication.tilesEditor.setData();
+		}
+		
+		/**
+		 * Handler chargement de la ressource graphique
+		 */
+		private function onCreationComplete(event:Event = null):void
+		{
+//			loader = new Loader();
+//			loader.contentLoaderInfo.addEventListener(Event.COMPLETE, loaderHandler, false, 0, true);
+			loaderHandler();
+//			loader.load(new URLRequest(data.url));
+		}
+		
+		]]>
+	</mx:Script>		
+</mx:Canvas>

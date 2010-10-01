@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete(event);">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		
+		/**
+		 *	Formulaire additionnel pour lecteur Viméo
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+				
+		// trigger en pris en charge par cette instance
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["swf","al","pl","bg","fg"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete(event:FlexEvent):void
+		{			
+		}
+
+	    ]]>
+	</mx:Script>
+	
+</mx:VBox>

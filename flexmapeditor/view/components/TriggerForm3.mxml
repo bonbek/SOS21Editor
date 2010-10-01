@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		/**
+		 *	Formulaire additionnel pour triggers type quiz
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		// dp combo liste des mode
+		/*[Bindable]
+		public var modeList:Array = [	{title: , mode:},
+										{title: , mode:},
+										{title: , mode:}	];*/
+				
+		// trigger en pris en charge par cette instances
+		/*private var _trigger:Object;
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if ("id" in _trigger.arguments)
+			{
+				qcmList.text = _trigger.arguments["id"];
+			}
+		}*/
+		
+		private var firstInit:Boolean = true;
+		
+		// trigger en pris en charge par cette instance
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}	
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{
+
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["id", "mode", "x", "y"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	Réception liste des qcm
+		 */
+		protected function qcmListHandler():void
+		{
+			_trigger.arguments["id"] = qcmList.text.split(",").join("#");
+			trace(_trigger.arguments["id"]);
+		}
+		
+		/**
+		 *	Réception checkbox options des mode qcm
+		 */
+		protected function cbModeHandler(event:Event):void
+		{
+			var val:int = event.target.data;
+			if (!event.target.selected) {
+				val = -val;
+			}
+			_trigger.arguments["mode"]+= val;
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete():void
+		{
+			var args:Object = _trigger.arguments;
+
+			// liste des qcm
+			if ("id" in args)
+			{
+				qcmList.text = String(args["id"]).split("#").join(",");
+			} else {
+				args["id"] = "";
+				qcmList.text = "";
+			}
+			// modes des qcm
+			if ("mode" in args)
+			{
+				var qmode:int = args["mode"];
+				cb_replay.selected = Boolean(qmode & 1)	// ne pas rejouer les qcm deja joués
+				cb_random.selected = Boolean(qmode & 2)	// mode aléatoire
+			} else {
+				args["mode"] = 0;
+			}
+		}
+
+	    ]]>
+	</mx:Script>
+	<mx:Label text="liste des qcm (séparés par des virgules): " />
+	<mx:TextInput id="qcmList" change="qcmListHandler()" />
+	<mx:Label text="mode de lecture: " />
+	<mx:CheckBox id="cb_replay" label="ne pas rejouer les qcm déjà joués" click="cbModeHandler(event)" data="1" />
+	<mx:CheckBox id="cb_random" label="aléatoire (1 qcm dans la liste tiré au sort)" click="cbModeHandler(event)" data="2" />
+</mx:VBox>

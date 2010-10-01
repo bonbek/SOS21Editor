@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	title="Modification autre trigger"
+	showCloseButton="true" close="PopUpManager.removePopUp(this)"
+	xmlns:flmp="flexmapeditor.view.components.*">
+	
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.managers.PopUpManager;
+		import flash.events.Event;
+		
+		/**
+		*	Description
+		*
+		*	@langversion ActionScript 3.0
+		*	@playerversion Flash 9.0
+		*
+		*	@author toffer
+		*/
+		
+		[Bindable]
+		public var trigger:Object;
+		
+		[Bindable]
+		public var ovtrigger:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		public function set triggerTypes (val:Object) : void
+		{
+			form.triggerTypes = val;
+			oform.triggerTypes = val;
+		}
+		
+		public function set triggerFireTypes (val:Object) : void
+		{
+			form.triggerFireTypes = val;
+			oform.triggerFireTypes = val;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:HBox horizontalGap="20" verticalAlign="middle">
+		<!-- original -->
+		<flmp:OverrideTriggerForm id="form" trigger="{trigger}" width="350" height="340"
+				mouseEnabled="false" mouseChildren="false" themeColor="0x000000"/>
+		<mx:Label text=">" />
+		<!-- overridé -->
+			<!-- <mx:Label text="type d'action / déclencheur" />
+						<flmp:DisabledComboBox id="cbTriggerType" width="100%" rowCount="100"
+									dataProvider="{triggerTypes}" close="onChangeTriggerType(event);" /> -->
+			<!-- <flmp:DisabledComboBox id="ccbTriggerFireType" dataProvider="{dtTriggerFireTypes}"
+								width="100%" rowCount="100"
+					            close="ccbTriggerTypeHandler(event);" /> -->
+
+		<flmp:OverrideTriggerForm id="oform" trigger="{ovtrigger}" width="350" height="340" />
+	</mx:HBox>
+	<mx:Button id="btApplyChange" label="appliquer"/>
+	
+</mx:TitleWindow>

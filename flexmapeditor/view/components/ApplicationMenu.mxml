@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- menu principal de l'application -->
+<mx:MenuBar xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:ns="flexmapeditor.view.components.*"
+	labelField="@label"
+	dataProvider="{menuList}"
+	creationComplete="onCreationComplete();" >
+	<!-- dataProvider="{menuList}" itemClick="menuHandler(event)" -->
+	
+	<mx:Script>
+	        <![CDATA[
+	
+//	            import mx.events.MenuEvent;
+//	            import mx.controls.Alert;
+	            import mx.collections.*;
+//				import mx.containers.Panel;
+//				import mx.core.IFlexDisplayObject;
+//				import mx.managers.PopUpManager;
+//				import flash.net.Responder;
+				
+				
+//				private var fileChooser:MapChooser;
+				
+	            [Bindable]
+	            public var menuList:XMLListCollection;
+
+	            /**
+	             *	Réception event sélection d'une entrée dans la menu
+	             *	@param event MenuEvent
+	             */
+	            /*private function menuHandler(event:MenuEvent):void 
+				{
+					var entry:String = event.item.@data;
+					switch (entry)
+					{
+						case "open" : // ouvrir une map
+						{
+							// on lance la recup de la liste des maps
+							parentApplication.gateway.call( "sos21Services.getMapList", new Responder(onMaplistResult, onFault));
+							break;
+						}
+						case "editCollisions" : // passage en édition collisions
+						{
+							PopUpManager.createPopUp(parentApplication.ui, CollisionsEditor) as CollisionsEditor;
+							break;
+						}
+						case "editTrigger" : //  passage en edition triggers
+						{
+							parentApplication.ui.propertyBox.addChild(new TriggersEditor());
+							break;
+						}
+						case "dispBackground" :
+						{
+							parentApplication.ui.viewport.backgroundVisible = Boolean(event.item.@toggled == "true" ? true : false);
+							break;
+						}
+						case "dispForeground" :
+						{
+							parentApplication.ui.viewport.foregroundVisible = Boolean(event.item.@toggled == "true" ? true : false);
+							break;
+						}
+						case "dispTiles" :
+						{
+							parentApplication.ui.viewport.tilesVisible = Boolean(event.item.@toggled == "true" ? true : false);
+							break;
+						}
+						case "dispWall" :
+						{
+							parentApplication.ui.viewport.wallsVisible = Boolean(event.item.@toggled == "true" ? true : false);
+							break;
+						}
+					}
+	            }*/
+				
+				/**
+				 *	Réception event remoting pour la liste des maps
+				 *	Normalement le user veux ouvrir une map, on crée une popup
+				 *  choix du fichier
+				 *	@param result Array
+				 */
+				/*private function onMaplistResult(result:Array):void
+				{
+					// on crée une popup
+					var panel:MapChooser = new MapChooser();
+					var dBox:MapChooser = PopUpManager.createPopUp(parentApplication.ui, MapChooser, true) as MapChooser;
+					PopUpManager.centerPopUp(dBox);
+//					fileChooser = dBox as MapChooser;
+					// on inject les data
+					dBox.fileList = result;
+				}*/
+
+				/*public function onFault(fault:String):void 
+				{ 
+					trace(fault); 
+				}*/
+				
+	            /**
+	             *	Reception event composant initialisé
+	             *	Remplissage des menus
+	             *	@private
+	             */
+	            private function onCreationComplete():void
+				{
+					var li:XMLList =
+	                <>
+	                    <menuitem label="Scene">
+	                        <menuitem label="Ouvrir" data="open" />
+							<menuitem label="Nouvelle" data="new" />
+	                    </menuitem>
+	                    <menuitem label="Editer">
+							<menuitem label="les tiles" data="editTiles" type="radio" groupName="edit" />
+							<menuitem label="la grille de collisions" data="editCollisions" type="radio" groupName="edit" />
+	                        <menuitem label="les actions" data="editTrigger" type="radio" groupName="edit" />
+	                    </menuitem>
+	                    <menuitem label="Affichage">
+							<menuitem label="afficher le fond" data="dispBackground" type="check" toggled="true" />
+	                        <menuitem label="afficher le premier plan" data="dispForeground" type="check" toggled="true" />
+							<menuitem label="afficher les tiles" data="dispTiles" type="check" toggled="true" />
+							<menuitem label="afficher la grille" data="dispGrid" type="check" toggled="false" />
+							<menuitem label="afficher les murs" data="dispWall" type="check" toggled="true" />
+	                    </menuitem>
+	                </>;
+
+                /*<menuitem label="Scene">
+                    <menuitem label="Ouvrir" data="open" />
+					<menuitem label="Nouvelle" data="new" />
+                </menuitem>
+                <menuitem label="Editer">
+					<menuitem label="les tiles" data="editTiles" type="radio" groupName="edit" />
+					<menuitem label="la grille de collisions" data="editCollisions" type="radio" groupName="edit" />
+                    <menuitem label="les actions" data="editTrigger" type="radio" groupName="edit" />
+                </menuitem>
+                <menuitem label="Affichage">
+					<menuitem label="afficher le fond" data="dispBackground" type="check" toggled="true" />
+                    <menuitem label="afficher le premier plan" data="dispForeground" type="check" toggled="true" />
+					<menuitem label="afficher les tiles" data="dispTiles" type="check" toggled="true" />
+					<menuitem label="afficher la grille" data="dispGrid" type="check" toggled="false" />
+					<menuitem label="afficher les murs" data="dispWall" type="check" toggled="true" />
+                </menuitem>*/
+
+	
+	                menuList = new XMLListCollection(li);
+	            }
+	
+	         ]]>
+	    </mx:Script>
+	
+	
+</mx:MenuBar>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- layout de l'application -->
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:ns="flexmapeditor.view.components.*"
+	xmlns:view="flexmapeditor.view.components.*"
+	label="layout"
+	width="100%" height="100%"
+	backgroundColor="#E8E8E8"
+	creationComplete="onCreationComplete()">
+	
+	<mx:Script>
+	    <![CDATA[
+	
+		import flash.net.NetConnection;
+		import flash.net.Responder;
+		import flash.net.ObjectEncoding;
+		import mx.utils.ObjectProxy;
+		import mx.collections.ArrayCollection;
+
+		/*[Bindable] 
+		public var dg_dataProvider:Array; */
+
+		public var gateway:NetConnection;
+
+		public function onCreationComplete():void
+		{ 
+			
+		} 
+	
+		]]>
+	</mx:Script>
+	
+	<!-- <ns:ApplicationMenu id="menuBar" />
+	<mx:HBox width="100%">
+		<ns:ToolBox width="40" height="100%" verticalAlign="top" />
+		<mx:Canvas id="canvas">
+			<ns:Viewport id="viewport" />
+		</mx:Canvas>
+		<mx:HBox id="propertyBox" width="100%" backgroundColor="#E8E8E8" />
+	</mx:HBox> -->
+	
+	<!-- <mx:VDividedBox id="divider" width="100%" height="100%">
+			<mx:HBox id="dividerh"  width="100%" height="100%">
+				<ns:ToolBox width="40" height="100%" verticalAlign="top" />
+				<ns:Viewport id="viewport"/>
+			</mx:HBox>
+			<mx:HBox id="propertyPBox" height="200" width="100%" />
+		</mx:VDividedBox>	-->
+		<!-- <mx:HBox id="libraryPanel" height="50%" width="100%">
+			<ns:LibraryList id="libraryList" width="100" />
+			<mx:TabNavigator id="tabs"  width="100%" height="100%">
+				<ns:TileLibrary id="tileLibrary" backgroundColor="#666666" />
+				<ns:TileLibrary id="tileLibrary2" backgroundColor="#666666" />
+			</mx:TabNavigator>
+		</mx:HBox>	 -->
+	
+</mx:Box>

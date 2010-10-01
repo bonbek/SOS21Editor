@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- <KapLab:Visualizer xmlns:mx="http://www.adobe.com/2006/mxml"
+		x="0" y="0" width="800" height="600"
+		xmlns:flmp="flexmapeditor.view.components.*"
+		backgroundColor="0xFFFFFF" 
+		dataProvider="{ myDataProvider}" 
+		labelFields="{['@name']}"
+		tooltipFields="{['@experience']}"
+		toolTipTitles="{['Experience']}"
+		creationComplete="onCreationComplete(event);"> -->
+
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:KapLab="com.kapit.visualizer.*"
+	xmlns:flmp="flexmapeditor.view.components.*"
+	creationComplete="onCreationComplete(event);">
+
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;		
+		import mx.controls.Image;
+		import mx.collections.ArrayCollection;
+		
+		import com.kapit.visualizer.LayoutConstants;
+		
+		[Bindable]
+		public var dpData:ArrayCollection = new ArrayCollection([{label:"root", children:[
+												{label:"click", children:[{label:"un trigger"}, {label:"un autre trigger"}] },
+												{label:"roll over", children:[{label:"un trigger"}, {label:"un autre trigger"}] },
+												{label:"roll out", children:[{label:"un trigger"}, {label:"un autre trigger"}] },
+												{label:"click pressé", children:[{label:"un trigger"}, {label:"un autre trigger"}] } ]}]);
+		
+		private function onCreationComplete(event:FlexEvent):void
+		{
+//			this.layout = LayoutConstants.BALLOON_LAYOUT;
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:XML xmlns="" id="myDataProvider">
+		<Organization name="Manager" experience="20">
+			<Organization name="Project Lead" experience="10">
+				<Organization name="Architect" experience="6"/>
+				<Organization name="Developer" experience="3"/>
+				<Organization name="Developer" experience="1"/>
+				<Organization name="Developer" experience="2"/>
+			</Organization>
+			<Organization name="Project Lead" experience="8">
+				<Organization name="Architect" experience="7"/>
+				<Organization name="Architect" experience="5"/>
+				<Organization name="Developer" experience="4"/>
+				<Organization name="Developer" experience="3"/>
+				<Organization name="Developer" experience="3"/>
+				<Organization name="Developer" experience="1"/>
+			</Organization>
+			<Organization name="Project Lead" experience="12">
+				<Organization name="Architect" experience="7"/>
+				<Organization name="Architect" experience="7"/>
+				<Organization name="Architect" experience="5"/>
+				<Organization name="Developer" experience="3"/>
+				<Organization name="Developer" experience="3"/>
+				<Organization name="Developer" experience="2"/>
+				<Organization name="Developer" experience="1"/>
+			</Organization>
+		</Organization>
+
+	</mx:XML>
+	<KapLab:Visualizer x="0" y="0" width="300" height="300"
+			id="integrationDemo" 
+			dataProvider="{ dpData}" 
+			labelFields="label"
+			nodeZoomFactor="2"
+			zoomNodeNodeOnRollOver="true"
+			tooltipFields=""
+			toolTipTitles=""
+			showExpandCollapseButton="false"
+			expandOnDoubleClick="true"
+			enablePan="false"
+			layout="{LayoutConstants.HIERARCHICAL_TREE_LAYOUT}" />
+	<!-- <KapLab:Visualizer x="0" y="0" width="800" height="600"
+			backgroundColor="0xFFFFFF" 
+			id="integrationDemo" 
+			dataProvider="{ myDataProvider}" 
+			labelFields="{['@name']}"
+			tooltipFields="{['@experience']}"
+			toolTipTitles="{['Experience']}"
+			layout="{LayoutConstants.BALLOON_LAYOUT}" /> -->
+	
+</mx:Canvas>

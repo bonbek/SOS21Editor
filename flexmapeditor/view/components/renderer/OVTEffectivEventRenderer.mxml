@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalAlign="center">
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		
+		/**
+		 *	Renderer ComboBox datagrid override trigger (voir TriggerForm0) pour
+		 * le type d'event associé à l'override : début (EXECUTE), fin (COMPLETE), annulé (CANCELED)
+		 * > voir TileTriggersProxy
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2010-09-21
+		 */
+		
+		[Bindable]
+        private static var dpValue:Array = [{ label:"début", data:0 },
+											{ label:"fin", data:1},
+											{ label:"annulé", data:2}];
+
+		public function get value () : int
+		{
+			var index:int = combo.selectedIndex;
+			return dpValue[index].data;
+		}
+		
+		/**
+		 * @inheritDoc
+		 */
+		override public function set data (value:Object) : void 
+		{
+			super.data = value;
+			if (value != null) 
+			{
+				var currentValue:int = value.effectivEvt;
+				var len:int = dpValue.length;
+				for (var i:int = 0; i < len; i++) 
+				{
+					if (dpValue[i].data == currentValue) 
+					{
+						combo.selectedIndex = i;
+						break;
+					}
+				}
+			}
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:ComboBox id="combo" dataProvider="{dpValue}" width="70" height="16"
+		arrowButtonWidth="1" borderThickness="0" />
+	
+</mx:VBox>
+<!-- <mx:ComboBox
+    xmlns:mx="http://www.adobe.com/2006/mxml" 
+    dataChange="setSelected()" 
+    change="onSelectionChange(event)"
+    focusEnabled="true">
+    <mx:Script>
+        <![CDATA[
+            import mx.events.DataGridEvent;
+            import mx.events.ListEvent;
+            import mx.controls.dataGridClasses.DataGridListData;
+
+            private var _ownerData:Object;
+            private var _lookupField:String = "value";
+
+            // When using this component as an itemEditor rather than an itemRenderer
+            // then set ' editorDataField="selectedItemKey"' on the column to 
+            // ensure that changes to the ComboBox are propogated.
+            [Bindable] public var selectedItemKey:Object;
+
+            public function set lookupField (value:String) : void {
+                if(value) {
+                    _lookupField = value;
+                    setSelected();
+                }
+            }           
+            override public function set data (value:Object) : void {
+                if(value) {                    
+                    _ownerData = value;
+                    setSelected();
+                }
+            }
+            override public function get data() : Object {
+                return _ownerData;
+            }            
+            private function setSelected() : void {
+                if (dataProvider && _ownerData) {
+                    var col:DataGridListData = DataGridListData(listData);
+                    for each (var dp:Object in dataProvider) {
+                        if (dp[_lookupField] == _ownerData[col.dataField]) {
+                            selectedItem = dp;
+                            selectedItemKey = _ownerData[col.dataField];
+                            return;     
+                        }
+                    }                    
+                }
+                selectedItem = null;
+            }
+            private function onSelectionChange (e:ListEvent) : void {
+                if (selectedItem && _ownerData) {                    
+                    var col:DataGridListData = DataGridListData(listData);
+                    _ownerData[col.dataField] = selectedItem[_lookupField];
+                    selectedItemKey = selectedItem[_lookupField];
+                }
+            }                   
+        ]]>
+    </mx:Script>    
+</mx:ComboBox> -->

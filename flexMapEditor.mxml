@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flmp="flexmapeditor.view.components.*"
+	frameRate="25"
+	layout="absolute"
+	horizontalScrollPolicy="off"
+	verticalScrollPolicy="off"
+	creationComplete="onCreationComplete()">
+	
+	<!-- css -->
+	<mx:Style>
+        ButtonBar {
+            buttonStyleName: myCustomButtonStyleName;
+        }
+
+        .myCustomButtonStyleName {
+            cornerRadius: 0;
+        }
+    </mx:Style>
+	
+	<!-- Copyright 2008 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.MenuEvent;
+		import mx.managers.PopUpManager;
+		import mx.core.IFlexDisplayObject;
+		
+		import flash.events.KeyboardEvent;
+		import flash.events.MouseEvent;
+		import flash.net.NetConnection;
+		import flash.net.ObjectEncoding;
+		import flash.net.Responder;
+		
+		import ddgame.client.proxy.ProxyList;
+		import ddgame.client.view.HelperList;
+		import ddgame.helper.HelperList;
+
+		import ddgame.client.events.EventList;
+		import ddgame.client.events.PublicIsoworldEventList;
+		
+		import flexmapeditor.view.components.PopupList;
+		import flexmapeditor.view.components.LoginBox;
+
+		
+		/**
+		 *	root de l'application
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author toffer
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		// popup en cours
+		private var currentPopup:Object;
+		// dernier état en cours
+		private var lastState:String;
+		
+		//---------------------------------------
+		// PUBLIC VARIABLES
+		//---------------------------------------
+		
+		// connection amfphp
+		public var gateway:NetConnection;
+		public var beta:Object;
+		// facade de la beta
+		public var facade:Object;
+		
+		// TriggerProxy
+		public var triggersProxy:Object;
+		// CollisionGridProxy
+		public var collisionGridProxy:Object;
+		// DatamapProxy
+		public var datamapProxy:Object;
+		// IsosceneHelper
+		public var isosceneHelper:Object;
+		// ObjectBuilderProxy
+		public var objectBuilderProxy:Object;
+
+		[Bindable]
+		public var saveBtnLabel:String;
+
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		/**
+		 * Retourne l'état "en preview" de l'appli
+		 */
+		public function get previewMode():Boolean {
+			return currentState == "preview";
+		}
+		
+		/**
+		 * @private
+		 * Passage référence à la Facade de la beta (voir Viewport.loaderCompleteHandler)
+		 * On fait un petit taf d'initialisation, arrêt des triggers, etc...
+		 */
+		public function setFacade(val:Object):void
+		{
+			
+			facade = val;
+			
+			// stockage des refs
+			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY)
+			collisionGridProxy = facade.getProxy(ProxyList.COLLISIONGRID_PROXY);
+			datamapProxy = facade.getProxy(ProxyList.DATAMAP_PROXY);
+
+			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY);
+			isosceneHelper = facade.getObserver(ddgame.client.view.HelperList.ISOSCENE_HELPER);
+			objectBuilderProxy = facade.getProxy(ProxyList.OBJECTBUILDER_PROXY);
+			
+			// on coupe les triggers
+			triggersProxy.triggersEnabled = false;
+			// on coupe le son
+			facade.getObserver(ddgame.helper.HelperList.AUDIO_HELPER).muteMusic();
+			
+			// on s'abonne à la construction des scènes
+			facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 0, true);
+			// ecoute clavier
+			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
+			
+			currentState = "editTriggers";
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		private function onSceneBuilded (event:Event) : void
+		{
+			// on enleve les listeners de la scene iso
+			isosceneHelper.removeListeners();
+			if (lastState && previewMode == false)
+				currentState = lastState;
+		}
+		
+		/**
+		 * 	Réception events claviers
+		 *	@param event KeyboardEvent
+		 */
+		private function keyboardHandler(event:KeyboardEvent):void
+		{
+//			trace(event.keyCode);
+			var kc:uint = event.keyCode;
+			if (event.altKey)
+			{
+				switch (kc)
+				{
+					case 83 : // shift + s switch mode preview
+					{
+						saveCurrentEdition();
+						break;
+					}
+					case 84 : // shift + t édition tiles
+					{
+//						switchToOption("editTiles");
+						break;
+					}
+					case 254 : // alt + p reload & switch mode preview (si pas)
+					{
+//						if (event.shiftKey)
+//							previewReloadButtonHandler();
+//						else
+						switchPreview();
+						break;
+					}
+				}
+				return;
+			}
+		}
+				
+		/**
+		 *	@private
+		 * 	Réception events du bouton prévis de la scène
+		 */
+		private function previewButtonHandler():void
+		{
+			switchPreview();
+		}
+		
+		/**
+		 *	@private
+		 * 	Reception events bouton recharger previs
+		 */
+		private function previewReloadButtonHandler():void
+		{
+			if (!previewMode) switchPreview();
+			reloadPreview();
+		}
+		
+		/**
+		 *	Reception des events dans la barre de menu 
+		 * 
+		 *	@param event MenuEvent
+		 */
+		private function menuBarHandler(event:MenuEvent):void
+		{
+			var entry:String = event.item.@data;
+			switch (entry)
+			{
+				case "open" : // ouvrir une map
+				{
+					// ouverture fenetre
+					var dBox:IFlexDisplayObject = PopUpManager.createPopUp(this, PopupList, true);
+					PopUpManager.centerPopUp(dBox);
+					currentPopup = dBox;
+					// on lance la recup de la liste des maps
+					gateway.call( "sos21Services.getMapList", new Responder(onMaplistResult, onFault));
+					break;
+				}
+				case "editTiles" :
+				{
+					currentState = 'editTiles';
+					break;
+				}
+				case "editCollisions" : // passage en édition collisions
+				{
+					currentState = 'editCollisions';
+					break;
+				}
+				case "editTrigger" : //  passage en edition triggers
+				{
+					currentState = 'editTriggers';
+					break;
+				}
+				case "dispBackground" :
+				{
+					viewport.backgroundVisible = Boolean(event.item.@toggled == "true" ? true : false);
+					break;
+				}
+				case "dispForeground" :
+				{
+					viewport.foregroundVisible = Boolean(event.item.@toggled == "true" ? true : false);
+					break;
+				}
+				case "dispTiles" :
+				{
+					viewport.tilesVisible = Boolean(event.item.@toggled == "true" ? true : false);
+					break;
+				}
+				case "dispWall" :
+				{
+					viewport.wallsVisible = Boolean(event.item.@toggled == "true" ? true : false);
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *	Réception events popup en cours
+		 *	ouverture de scène, ... 
+		 * 
+		 *	@param event Event
+		 */
+		private function popupListHandler(event:Event):void
+		{
+			switch (currentPopup.title)
+			{
+				case "ouvrir une scène" :
+				{
+					//
+					var mid:int = int(currentPopup.itemList.selectedItem.id);
+					beta.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+					//
+					currentPopup.validateButton.removeEventListener(MouseEvent.CLICK, popupListHandler, false);
+					PopUpManager.removePopUp(IFlexDisplayObject(currentPopup));
+					//
+					if (!bt_preview.selected)
+					{
+						lastState = currentState;
+						currentState = "noEdit";
+					}
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *	Réception event remoting pour la liste des maps
+		 *	@param result Array
+		 */
+		private function onMaplistResult(result:Array):void
+		{
+			currentPopup.dpItemList = result;
+			currentPopup.title = "ouvrir une scène";
+			currentPopup.validateButton.label = "ouvrir";
+			currentPopup.validateButton.addEventListener(MouseEvent.CLICK, popupListHandler, false, 0, true);
+		}
+
+		private function onFault(fault:String):void  {
+			trace(fault);
+		}
+		
+		/**
+		 *	Reception validation boite login 
+		 *	@param event Event
+		 */
+		private function loginBoxHandler(event:Event):void
+		{
+			if (currentPopup)
+			{
+				var users:Array = ["demo"];
+				var usersPass:Array = ["demo"];
+				var admin:Array = ["axelle"];
+				var adminPass:Array = ["beebop"];
+				
+				var iname:String = currentPopup.username.text;
+				var ipass:String = currentPopup.password.text;
+								
+				var logged:Boolean = false;
+				
+				var ind:int = users.indexOf(iname);
+				if (ind == usersPass.indexOf(ipass) && ind > -1)
+				{
+					gateway.addHeader( "Credentials", false, {userid: "lapin", password: "bleu"} );
+					logged = true;
+				} else {
+					ind = admin.indexOf(iname);
+					if (ind == adminPass.indexOf(ipass) && ind > -1)
+					{
+						gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
+						logged = true;
+					}
+				}
+				
+				if (logged)
+				{					
+					PopUpManager.removePopUp(IFlexDisplayObject(currentPopup));
+					currentPopup = null;
+				}				
+			}
+		}
+		
+		/**
+		 *	Réception application initialisée
+		 *  Mise en place du remoting
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete():void
+		{
+			// remoting
+			var rhost:String = Application.application.parameters.rhost;
+			if (!rhost) rhost = "/amfphp/gateway.php";				
+			gateway = new NetConnection();
+			gateway.objectEncoding = ObjectEncoding.AMF0;
+			gateway.connect(rhost);
+			gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
+			
+			// boite login
+			/*var dBox:IFlexDisplayObject = PopUpManager.createPopUp(viewport, LoginBox, true);
+			PopUpManager.centerPopUp(dBox);
+			currentPopup = dBox;
+			currentPopup.validateBtn.addEventListener(MouseEvent.CLICK, loginBoxHandler, false, 0, true);*/
+			
+			// ecoute selection dans menu
+			menuBar.addEventListener(MenuEvent.ITEM_CLICK, menuBarHandler, false, 100, true);
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		/**
+		 *	@private
+		 * 	Recharge la preview (si en mode preview)
+		 */
+		private function reloadPreview():void
+		{
+			if (previewMode)
+			{
+				var mid:int = int(datamapProxy.getData().id);
+				beta.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+			}
+		}
+		
+		/**
+		 *	@private
+		 * 	Bascule en mode preview / dernier mode 
+		 */
+		private function switchPreview():void
+		{
+			if (!previewMode)
+			{
+				lastState = currentState;
+				currentState = 'preview';
+				triggersProxy.triggersEnabled = true;
+				viewport.isosceneListenersEnabled = true;
+				bt_preview.selected = true;
+			} else {
+				currentState = lastState;
+				triggersProxy.triggersEnabled = false;
+				viewport.isosceneListenersEnabled = false;
+				bt_preview.selected = false;
+			}				
+		}
+		
+		private function saveCurrentEdition(event:Event = null):void
+		{
+			switch (currentState)
+			{
+				case "editTriggers" :
+				{
+					triggerEditor.save();
+					break;
+				}
+				case "editCollisions" :
+				{
+					collisionsEditor.save();
+					break;
+				}
+				case "editTiles" :
+				{
+					tilesEditor.save();
+				}
+			}
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<mx:State name="preview">
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="visible" value="false" />
+			<mx:SetProperty target="{menuBar}" name="enabled" value="false" />
+			<mx:AddChild relativeTo="{propertyBox}">
+				<mx:HBox />
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="noEdit">
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="visible" value="false" />
+			<mx:AddChild relativeTo="{propertyBox}">
+				<mx:HBox />
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="editTiles">
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="visible" value="true" />
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="label" value="sauvegarder la scene (ctrl + s)" />
+			<mx:AddChild relativeTo="{toolBox}">
+				<flmp:TilesEditorTollBar id="tileEditorToolBar" />
+			</mx:AddChild>			
+			<mx:AddChild relativeTo="{propertyBox}">
+				<flmp:TilesEditor id="tilesEditor" />
+			</mx:AddChild>
+		</mx:State>		
+		<mx:State name="editTriggers">
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="visible" value="true" />
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="label" value="sauvegarder les actions (ctrl + s)" />
+			<mx:AddChild relativeTo="{toolBox}">
+				<flmp:TriggersEditorTollBar id="triggerEditorToolBar" />
+			</mx:AddChild>			
+			<mx:AddChild relativeTo="{propertyBox}">
+				<flmp:TriggersEditor id="triggerEditor" />
+			</mx:AddChild>
+		</mx:State>
+		<mx:State name="editCollisions">
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="visible" value="true" />
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="label" value="sauvegarder les collisions"/>
+			<mx:AddChild relativeTo="{propertyBox}">
+				<flmp:CollisionsEditor id="collisionsEditor" />
+			</mx:AddChild>
+		</mx:State>
+	</mx:states>
+	
+	<mx:Box id="appCanvas" width="100%" height="100%" backgroundColor="#E8E8E8">
+		<mx:HBox width="100%">
+			<flmp:ApplicationMenu id="menuBar" width="100%" />
+			<mx:Button id="bt_preview"
+				icon="@Embed('flexmapeditor/view/components/icons/rainbow.png')"
+				toolTip="tester la scène" toggle="true" click="previewButtonHandler()" />
+			<mx:Button id="bt_previewReload"
+				icon="@Embed('flexmapeditor/view/components/icons/arrow_refresh.png')"
+				toolTip="recharger / tester la scene"
+				click="previewReloadButtonHandler()" />
+		</mx:HBox>
+		<mx:HBox id="mainContent" width="100%" height="100%">
+			<mx:Box id="toolBox" width="32" height="100%" />
+			<mx:VBox height="100%" width="100%">
+				<mx:HBox width="100%">
+			
+			
+					<!-- <mx:VBox> -->
+						<!-- <mx:Canvas id="canvas" height="512"> -->
+					<flmp:Viewport id="viewport" />
+						<!-- </mx:Canvas> -->
+					<!-- </mx:VBox> -->
+			
+					<mx:VBox width="100%" height="100%">
+						<mx:HBox id="propertyBox" width="100%" height="100%" backgroundColor="#E8E8E8" />
+						<mx:Button id="saveCurrentEditBtn" width="100%"
+									icon="@Embed('flexmapeditor/view/components/icons/disk.png')"
+									visible="false"
+									label=""
+									toolTip="{saveBtnLabel}"
+									click="saveCurrentEdition(event);"/>
+					</mx:VBox>
+				</mx:HBox>
+				<mx:Box id="optionBox" width="100%" height="100%" />
+			</mx:VBox>
+		</mx:HBox>
+	</mx:Box>
+	
+	<!-- <view:UILayout id="ui" />
+	<view:TriggersEditor /> -->
+	
+</mx:Application>

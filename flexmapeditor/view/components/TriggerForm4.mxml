@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	removedFromStage="onClose();"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.collections.ArrayCollection;
+		import mx.events.CollectionEvent;
+		import mx.events.CollectionEventKind;
+		import mx.events.PropertyChangeEvent;
+		import mx.events.ItemClickEvent;
+		
+		/**
+		 *	Formulaire additionnel pour triggers type menu contexctuel
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		//---------------------------------------
+		// PUBLIC VARIABLES
+		//---------------------------------------
+		
+		[Bindable]
+		public var dpEntrys:ArrayCollection  = new ArrayCollection([]);
+		
+		[Embed("icons/textfield_add.png")]
+		public var addIcon:Class;
+		[Embed("icons/textfield_delete.png")]
+		public var deleteIcon:Class;
+		[Embed("icons/arrow_up.png")]
+		public var arrowUpIcon:Class;
+		[Embed("icons/arrow_down.png")]
+		public var arrowDownIcon:Class;
+		
+		[Bindable]
+		public var dpButtonBar:Array = [	{ icon:addIcon, toolTip:"ajouter une entrée", id:"addEntry" },
+											{ icon:deleteIcon, toolTip:"supprimer l'entrée selectionée", id:"removeEntry" },
+											{ icon:arrowUpIcon, toolTip:"déplacer", id:"moveUp"},
+											{ icon:arrowDownIcon, toolTip:"déplacer", id:"moveDown"} ];
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var firstInit:Boolean = true;
+		private var _trigger:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		[Bindable]
+		public function set trigger(t:Object) : void
+		{
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}	
+			
+			/*if (firstInit)
+			{
+				firstInit = false;
+				return;
+			}*/
+						
+			/*if (t != _trigger)
+			{*/
+				// nettoyage
+				/*ti_title.text = '';
+				dpEntrys.removeAll();
+				ckb_delInvalidTriggers.selected = false;
+				if (!_trigger) return;
+
+				var args:Object = _trigger.arguments;
+
+				if ("title" in args) ti_title.text = args["title"];
+
+				// injection des entrées
+				if ("tl" in args && "ll" in args)
+				{
+					var tl:Array = String(args["tl"]).split("#");
+					var ll:Array = String(args["ll"]).split("#");
+					var n:int = tl.length;
+					if (n == ll.length)
+					{
+						for (var i:int = 0; i < n; i++)
+							dpEntrys.addItem({ label:ll[i], id:tl[i] });
+					}
+				}
+
+				// option supprimer actions invalide
+				ckb_delInvalidTriggers.selected = args["dvf"] != 1;
+
+				dpEntrys.addEventListener(CollectionEvent.COLLECTION_CHANGE, onCollectionChange);*/
+			/*}*/
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["title", "tl", "ll", "dvf"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+			var elist:Array = dpEntrys.toArray();
+			var n:int = elist.length;
+			var ll:Array = [];
+			var tl:Array = [];
+			var e:Object;
+			for (var i:int = 0; i < n; i++)
+			{
+				e = elist[i];
+				ll.push(e.label);
+				tl.push(e.id);
+			}
+			
+			var args:Object = _trigger.arguments;
+			args["title"] = ti_title.text;
+			args["ll"] = ll.join("#");
+			args["tl"] = tl.join("#");
+			
+			if (ckb_delInvalidTriggers.selected)
+				args["dvf"] = 0;
+			else
+				args["dvf"] = 1;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	Réception des events bar de boutons gestion des entrées
+		 */
+		private function buttonBarHandler(event:ItemClickEvent):void
+		{
+			switch(event.item.id)
+			{
+				case "addEntry" :
+				{
+					var entry:Object = {label:"nouvelle entrée", id:""};
+					dpEntrys.addItem(entry);
+					dgEntrys.selectedItem = entry;
+					dgEntrys.scrollToIndex(dgEntrys.selectedIndex);
+					updateOnSave();
+					break;
+				}
+				case "removeEntry" :
+				{
+					if (dgEntrys.selectedItem) {
+						dpEntrys.removeItemAt(dgEntrys.selectedIndex);
+						updateOnSave();
+					}
+					break;
+				}
+				case "moveUp" :
+				{
+					entry = dgEntrys.selectedItem;
+					if (entry)
+					{
+						var ind:int = dgEntrys.selectedIndex;
+						if (ind - 1 > -1)
+						{
+							dpEntrys.removeItemAt(ind)
+							dpEntrys.addItemAt(entry, --ind);
+							dgEntrys.selectedItem = entry;
+							dgEntrys.scrollToIndex(ind);
+							updateOnSave();
+						}							
+					}
+					break;
+				}
+				case "moveDown" :
+				{
+					entry = dgEntrys.selectedItem;
+					if (entry)
+					{
+						ind = dgEntrys.selectedIndex;
+						if (ind + 1 < dpEntrys.length)
+						{
+							dpEntrys.removeItemAt(ind)
+							dpEntrys.addItemAt(entry, ++ind);
+							dgEntrys.selectedItem = entry;
+							dgEntrys.scrollToIndex(ind);
+							updateOnSave();
+						}
+							
+					}
+					break;
+				}
+			}
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		private function onClose () : void
+		{
+			dpEntrys.removeEventListener(CollectionEvent.COLLECTION_CHANGE, onCollectionChange);
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete():void
+		{
+			if (!_trigger) return;
+			
+			var args:Object = _trigger.arguments;
+
+			if ("title" in args) ti_title.text = args["title"];
+			else
+			ti_title.text = '';
+			
+			// injection des entrées
+			dpEntrys.removeAll();
+			if ("tl" in args && "ll" in args)
+			{
+				var tl:Array = String(args["tl"]).split("#");
+				var ll:Array = String(args["ll"]).split("#");
+				var n:int = tl.length;
+				if (n == ll.length)
+				{
+					for (var i:int = 0; i < n; i++)
+						dpEntrys.addItem({ label:ll[i], id:tl[i] });
+				}
+			}
+			
+			// option supprimer actions invalide
+			ckb_delInvalidTriggers.selected = args["dvf"] != 1;
+			
+			dpEntrys.addEventListener(CollectionEvent.COLLECTION_CHANGE, onCollectionChange);
+		}
+		
+		private function onCollectionChange(event:CollectionEvent):void
+		{
+		  if (event.kind == CollectionEventKind.UPDATE)
+		  {
+//		    var propChangeEvent:PropertyChangeEvent = event.items[0] as PropertyChangeEvent;
+//		    var existingItem:Object = propChangeEvent.source as Object;
+			updateOnSave();
+		    // TODO: update the database, web service, etc
+		  }
+		  else if (event.kind == CollectionEventKind.ADD)
+		  {
+			updateOnSave();
+//		    var newItem:Object = event.items[0] as Object;
+		  }
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="titre (facultatif) :" />
+	<mx:TextInput id="ti_title" width="99%" />
+	<mx:HBox width="99%">
+		<mx:Label text="entrées du menu :"/>
+		<mx:Box width="99%" horizontalAlign="right">
+			<mx:ButtonBar id="buttonBar"
+				direction="horizontal" buttonHeight="20" buttonWidth="20"
+				horizontalAlign="center" verticalAlign="middle"				
+				horizontalGap="6" verticalGap="0" focusEnabled="false"
+				dataProvider="{dpButtonBar}" itemClick="buttonBarHandler(event)" />
+		</mx:Box>
+	</mx:HBox>
+    <mx:DataGrid id="dgEntrys" width="99%" rowCount="3"
+		editable="true" dataProvider="{dpEntrys}" dropEnabled="true">
+        <mx:columns>
+            <mx:DataGridColumn dataField="label" headerText="intitulé"/>
+            <mx:DataGridColumn width="60" dataField="id" headerText="action"/>
+        </mx:columns>
+    </mx:DataGrid>
+	<mx:CheckBox id="ckb_delInvalidTriggers" label="Cacher automatiquement entrées / actions invalides" />
+</mx:Box>

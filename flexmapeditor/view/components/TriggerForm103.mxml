@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		
+		/**
+		 *	Formulaire additionnel pour triggers type bonus joueur
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		private var firstInit:Boolean = true;
+		// trigger en pris en charge par cette instances
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave() : void
+		{
+			updateOnSave();
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments() : Array
+		{
+			return ["psoc","peco","penv"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+			var args:Object = _trigger.arguments;
+			var p:int = int (ti_soc.text);
+			if (p) args["psoc"] = p
+			else
+				delete args["psoc"];
+			p = int (ti_eco.text);
+			if (p) args["peco"] = p;
+			else
+				delete args["peco"];
+			p = int (ti_env.text);
+			if (p) args["penv"] = p;
+			else
+				delete args["penv"];
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete () : void
+		{
+			ti_soc.text = "";
+			ti_eco.text = "";
+			ti_env.text = "";
+			var args:Object = _trigger.arguments;
+			/*if ("lev" in args)
+				it_lev.text = args["lev"];*/
+			if ("psoc" in args)
+				ti_soc.text = args["psoc"];
+			if ("peco" in args)
+				ti_eco.text = args["peco"];
+			if ("penv" in args)
+				ti_env.text = args["penv"];
+		}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="bonus / malus de points: " />
+	<mx:HBox>
+		<mx:Label text="social" />
+		<mx:TextInput id="ti_soc" restrict="\-0-9" width="30"/>
+		<mx:Label text="économie" />
+		<mx:TextInput id="ti_eco" restrict="\-0-9" width="30"/>
+		<mx:Label text="environnement" />
+		<mx:TextInput id="ti_env" restrict="\-0-9" width="30"/>
+	</mx:HBox>
+</mx:VBox>

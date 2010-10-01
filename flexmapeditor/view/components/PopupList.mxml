@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+		title=""
+        height="400" width="400" >
+
+    <mx:Script>
+
+        <![CDATA[
+
+			import mx.managers.PopUpManager;
+
+			[Bindable]
+			public var dpItemList:Array;
+			
+        ]]>
+    </mx:Script>
+	
+	<!-- liste des maps -->
+	<mx:List id="itemList" width="100%" height="100%"
+		dataProvider="{dpItemList}" dataTipField="id" labelField="title" />
+
+	<!-- bouton ouvrir / annuler -->
+    <mx:HBox width="100%" horizontalAlign="center">
+        <mx:Button id="cancelButton" label="annuler" click="PopUpManager.removePopUp(this);" />
+        <mx:Button id="validateButton" label="" />
+    </mx:HBox>
+
+</mx:TitleWindow>

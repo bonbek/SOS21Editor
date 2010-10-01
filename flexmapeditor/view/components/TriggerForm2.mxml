@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete(event);">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.Event;
+		
+		import mx.events.FlexEvent;
+		import mx.collections.ArrayCollection;
+		
+		/**
+		 *	Formulaire additionnel pour triggers popup
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		[Bindable]
+		private var dpPopType:ArrayCollection = new ArrayCollection(
+		                [ {label:"lien externe web / fichier", data:"exturl"},
+		                  {label:"mailto", data:"mailto"}, 
+		                  {label:"charger un fichier", data:"url"} ]);
+		[Bindable]
+		public var urlArg:String;
+		
+		private var firstInit:Boolean = true;
+		
+		// trigger en pris en charge par cette instances
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			}
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{
+
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["mailto", "url", "exturl", "relative", "target", "x", "y"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger (trigger:Object = null) : void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave () : void
+		{
+			ccbCloseHandler();
+		}
+		
+		/**
+		 *  Réception changement dans combo type de lien
+		 *	@param event Event
+		 */
+		private function ccbCloseHandler (event:Event = null) : void
+		{
+			// argument lien
+			var urla:String = ctextInput.text;
+			// type de lien (selectionné dans combo)
+			var linkType:String = urlTypeCombo.selectedItem.data;
+			
+			switch (linkType)
+			{
+				case "mailto" :
+				{
+					_trigger.arguments["mailto"] = urla;
+					
+					delete _trigger.arguments["url"];
+					delete _trigger.arguments["exturl"];
+					delete _trigger.arguments["relative"];
+					delete _trigger.arguments["x"];
+					delete _trigger.arguments["y"];
+					break;
+				}
+				case "exturl" :
+				{
+					_trigger.arguments["exturl"] = urla;
+					
+					delete _trigger.arguments["mailto"];
+					delete _trigger.arguments["url"];
+					delete _trigger.arguments["x"];
+					delete _trigger.arguments["y"];
+					break;
+				}
+				case "url" :
+				{
+					_trigger.arguments["url"] = urla;
+					
+					delete _trigger.arguments["mailto"];
+					delete _trigger.arguments["exturl"];
+					delete _trigger.arguments["relative"];
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete(event:FlexEvent = null):void
+		{
+			firstInit = false;
+			
+			// mise à 0 textinput url
+			urlArg = "";
+			
+			var args:Object = _trigger.arguments;
+			switch (true)
+			{
+				case "mailto" in args :
+				{
+					urlArg = _trigger.arguments["mailto"];
+					urlTypeCombo.selectedIndex = 1;
+					break;
+				}
+				case "url" in args :
+				{
+					var surl:String = _trigger.arguments["url"];
+					if (surl.indexOf("www") > -1)
+					{
+						urlArg = surl.replace("www", "");
+						urlTypeCombo.selectedIndex = 0;
+					} else {
+						urlArg = surl;
+						urlTypeCombo.selectedIndex = 2;
+					}
+					break;
+				}
+				case "exturl" in args :
+				{
+					urlArg = _trigger.arguments["exturl"];
+					urlTypeCombo.selectedIndex = 0;
+					break;
+				}				
+			}			
+		}
+
+	    ]]>
+	</mx:Script>
+
+	<mx:HBox width="100%">
+		<mx:Label text="type: " />
+		<mx:ComboBox id="urlTypeCombo" dataProvider="{dpPopType}" width="220"
+		            close="ccbCloseHandler(event);" />
+	</mx:HBox>
+	<mx:HBox width="100%">
+		<mx:Label text="url: " />
+		<mx:TextInput id="ctextInput" text="{urlArg}" editable="true" width="100%" />
+	</mx:HBox>
+</mx:VBox>

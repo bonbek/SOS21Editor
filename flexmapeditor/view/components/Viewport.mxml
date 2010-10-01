@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="844" height="512"
+	title="ceci est un titre"
+	backgroundColor="#000000"
+	headerColors="[#FFFFFF, #FFFFFF]"
+	borderAlpha="1"
+	highlightAlphas="[0.0,0]"
+   	borderThicknessLeft="2"
+   	borderThicknessRight="2"
+   	borderThicknessTop="2" >
+	
+	<!-- 
+		conteneur affichage de la scène
+		charge le beta, clean l'affichage (suppression de l'ui)
+	-->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		
+		import flash.net.*;
+		import flash.events.MouseEvent;
+		import flash.utils.getTimer;
+		import flash.display.DisplayObject;
+		import flash.display.DisplayObjectContainer;
+		import flash.events.KeyboardEvent;
+		
+		import ddgame.client.view.HelperList;
+		import ddgame.client.events.PublicIsoworldEventList;
+		
+		/**
+		 *	Description
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2009-08-06
+		 */
+		
+		// le root de la beta
+		public var betaApp:Object;
+		// le helper de la scene IsosceneHelper
+		public var isoSceneHelper:Object;	
+		
+		private var tClick:int = 0;
+		
+		private var _isosceneListenersEnabled:Boolean = false;
+		private var _wallsVisible:Boolean = true;
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		public function set backgroundVisible(val:Boolean):void
+		{
+			if (!isoSceneHelper) return;
+			isoSceneHelper.component.backgroundLayer.visible = val;
+		}
+		
+		public function set foregroundVisible(val:Boolean):void
+		{
+			if (!isoSceneHelper) return;
+			isoSceneHelper.component.foregroundLayer.visible = val;
+		}
+		
+		public function set tilesVisible(val:Boolean):void
+		{
+			if (!isoSceneHelper) return;
+			isoSceneHelper.component.sceneLayer.visible = val;
+		}
+		
+		public function set wallsVisible(val:Boolean):void
+		{
+			if (!isoSceneHelper || _wallsVisible == val) return;
+
+			_wallsVisible = val;
+			var t:Object = isoSceneHelper.getTile("bob");
+			var lay:Object = isoSceneHelper.component.sceneLayer;
+			var n:int = lay.numChildren;
+			while (--n > -1)
+			{
+				t = lay.getChildAt(n);
+				if (t.ID.indexOf("_w_") > -1)
+					t.visible = val;
+			}
+		}
+		
+		public function get tileList():Array {
+			var t:Object = isoSceneHelper.getTile("bob");
+			if (t) return t.getTileList();
+			
+			return [];
+		}
+		
+		public function set isosceneListenersEnabled(val:Boolean):void
+		{
+			if (!isoSceneHelper) return;
+			
+			if (val)
+				isoSceneHelper.addListeners();
+			else
+				isoSceneHelper.removeListeners();
+
+			_isosceneListenersEnabled = val;			
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		private function isosceneMousHandler(event:MouseEvent):void
+		{
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					var t:int = getTimer();
+					if (t - tClick < 600)
+					{
+						isoSceneHelper.component.x = 0;
+						isoSceneHelper.component.y = 0;
+					} else {
+						isoSceneHelper.component.startDrag();
+					}
+					tClick = t;
+					break;
+				case MouseEvent.MOUSE_UP :
+					isoSceneHelper.component.stopDrag();				
+					break;
+			}
+		}
+		
+		
+		private function keyBoardHandler(event:KeyboardEvent):void
+		{
+			var kc:uint = event.keyCode;
+			if (kc == 32) // onest sur la touche espace
+			{
+				if (event.type == KeyboardEvent.KEY_DOWN)
+				{
+					stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false);
+					stage.addEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false, 0, true);
+					isoSceneHelper.component.addEventListener(MouseEvent.MOUSE_DOWN, isosceneMousHandler, true, 500, true);
+					isoSceneHelper.component.addEventListener(MouseEvent.MOUSE_UP, isosceneMousHandler, true, 500, true);
+				} else {
+					stage.removeEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false);
+					stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+					isoSceneHelper.component.removeEventListener(MouseEvent.MOUSE_DOWN, isosceneMousHandler, true);
+					isoSceneHelper.component.removeEventListener(MouseEvent.MOUSE_UP, isosceneMousHandler, true);
+					isoSceneHelper.component.stopDrag();
+				}
+			}
+		}
+		
+		private function onSceneBuildedHandler(event:Event):void
+		{
+			var dt:Object = parentApplication.datamapProxy.getData();
+			this.title = "scene " + dt.id + " :: " + dt.title;
+			isosceneListenersEnabled = _isosceneListenersEnabled;
+			if (!_wallsVisible) {
+				_wallsVisible = true;
+				wallsVisible = false;
+			}
+		}
+		
+		private function onApplicationInitialized (event:Event):void
+		{
+			betaApp.removeEventListener("applicationInitialized", onApplicationInitialized, false);
+			// on s'abonne à la construction de la première scène
+			betaApp.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, cleanViewport, false, 500);
+		}
+		
+		/**
+		 *	Réception du chargement initial (beta + config)
+		 *	@param event Event
+		 */
+		private function loaderCompleteHandler (event:Event) : void
+		{
+			switch (event.target)
+			{
+				case container :
+				{
+					trace(this, "app loaded");
+					// on stock le root de la beta
+					betaApp = event.target.content;
+					// chargement config
+					var l:URLLoader = new URLLoader();
+					l.addEventListener(Event.COMPLETE, loaderCompleteHandler);
+					l.load(new URLRequest("config.xml"));					
+					break;
+				}
+				default :
+				{
+					event.target.removeEventListener(Event.COMPLETE, loaderCompleteHandler);
+					betaApp.addEventListener("applicationInitialized", onApplicationInitialized, false);
+					betaApp.startup(XML(event.target.data));
+					break;
+				}
+			}
+		}
+		
+		/**
+		 * Réception de l'affichage de la premierère map
+		 * On enleve l'ui et on recale l'affichage de la scène
+		 */
+		private function cleanViewport(event:Event = null):void
+		{
+			betaApp.facade.publicChannel.removeEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, cleanViewport, false);
+
+			// on stack la ref au helper isoscene
+			isoSceneHelper = betaApp.facade.getObserver(HelperList.ISOSCENE_HELPER);
+			
+			// on passe la référence à l'appli
+			parentApplication.beta = betaApp;			
+			parentApplication.setFacade(betaApp.facade);
+			
+			this.title = parentApplication.datamapProxy.title;
+			
+			// on supprime l'interface
+//			var uiHelper:Object = betaApp.facade.getObserver(HelperList.UI_HELPER);
+//			DisplayObjectContainer(betaApp).removeChild(DisplayObject(uiHelper.component));
+			
+			// on stock la référence du helper isoscene et on le recale
+			isoSceneHelper = betaApp.facade.getObserver(HelperList.ISOSCENE_HELPER);
+			isoSceneHelper.component.x = 0;
+			isoSceneHelper.component.y = 0;
+			
+			// ajout listener pour pan view
+			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+			betaApp.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuildedHandler, false);
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:SWFLoader id="container" width="840" height="480" source="core.swf"
+		scaleContent="false" maintainAspectRatio="true" complete="loaderCompleteHandler(event)" />
+
+</mx:Panel>

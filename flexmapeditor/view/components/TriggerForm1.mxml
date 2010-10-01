@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		
+		/**
+		 *	Formulaire additionnel pour triggers type changement de map
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		// dp combo liste des maps
+		[Bindable]
+		public var mapList:Array;
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+	
+		private var firstInit:Boolean = true;
+		private var _trigger:Object;
+	
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		[Bindable]
+		public function set trigger(t:Object):void
+		{
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}	
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{
+			updateOnSave();
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["mapid", "entryPoint", "injectTP"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+			_trigger.arguments["mapid"] = cb_mapList.selectedItem.id;
+			if (ti_xentryPoint.text.length >= 1)
+			{
+				var x:int = int(ti_xentryPoint.text);
+				var y:int = int(ti_yentryPoint.text);
+				var z:int = int(ti_zentryPoint.text);
+				if (x + y + z > 0)
+				{
+					_trigger.arguments["entryPoint"] = String(x + "/" + y + "/" + z);
+					return
+				}
+			}
+			
+			// mise à jour du formulaire
+			ti_xentryPoint.text = "";
+			ti_yentryPoint.text = "";
+			ti_zentryPoint.text = "";
+			// suppression de l'argument invalide
+			delete _trigger.arguments["entryPoint"];
+		}
+		
+		private function onResult(result:Array):void
+		{
+			mapList = result;
+			// on mets à jour l'affichage
+			if (_trigger.arguments["entryPoint"])
+			{
+				var p:Array = _trigger.arguments["entryPoint"].split("/");
+				ti_xentryPoint.text = p[0];
+				ti_yentryPoint.text = p[1];
+				ti_zentryPoint.text = p[2];
+			} else {
+				ti_xentryPoint.text = "";
+				ti_yentryPoint.text = "";
+				ti_zentryPoint.text = "";				
+			}
+			if (_trigger.arguments["mapid"])
+			{
+				var mid:int = _trigger.arguments["mapid"];
+				var n:int = mapList.length;
+				while (--n > -1)
+				{
+					if (mapList[n].id == mid)
+					{
+						cb_mapList.selectedIndex = n
+						break;
+					}
+				}
+			}
+		}
+		
+		private function onFault(fault:String):void
+		{
+			trace("erreur de chargement liste des map ", this);
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete():void
+		{			
+			// on recup la liste des maps
+			parentApplication.gateway.call( "sos21Services.getMapList", new Responder(onResult, onFault));
+		}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label width="100%" text="aller à la map" />
+	<mx:ComboBox id="cb_mapList" width="300"
+		 				rowCount="10"
+						dataProvider="{mapList}"
+						labelField="title" />
+	<mx:Label width="100%" text="point d'entrée :" />
+	<mx:HBox width="100%">
+		<mx:Label text="x :" />
+		<mx:TextInput id="ti_xentryPoint" editable="true" maxChars="3" restrict="0-9" />
+		<mx:Label text="y :" />
+		<mx:TextInput id="ti_yentryPoint" editable="true" maxChars="3" restrict="0-9" />
+		<mx:Label text="z :" />
+		<mx:TextInput id="ti_zentryPoint" editable="true" maxChars="3" restrict="0-9" />
+	</mx:HBox>
+	
+</mx:VBox>

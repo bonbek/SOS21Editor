@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flmp="flexmapeditor.view.components.*">
+
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+				
+		import mx.collections.ArrayCollection;
+				
+		/**
+		 *	Formulaire écrasement trigger
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2010-07-21
+		 */
+			
+			private var _tTypes:Object;
+			[Bindable]
+			public function set triggerTypes (val:Object) : void
+			{
+				if (_t) {
+					
+				}
+				_tTypes = val;
+			}
+			public function get triggerTypes () : Object {
+				return _tTypes;
+			}
+			
+			private var _tFTypes:Object;
+			[Bindable]
+			public function set triggerFireTypes (val:Object) : void
+			{
+				if (_t) {
+					
+				}
+				_tFTypes = val;
+			}
+			public function get triggerFireTypes () : Object {
+				return _tFTypes;
+			}
+			
+			private var _t:Object
+			[Bindable]
+			public function set trigger (val:Object) : void
+			{
+				_t = val;
+				currentState = "form" + _t.triggerClassId;
+
+				// -- mise à jour du combo action (class de trigger)
+				var n:int = triggerTypes.length;
+				var trClassId:int = _t.triggerClassId;
+				while (--n > -1)
+				{
+					if (triggerTypes[n].data == trClassId)
+					{
+						cbTriggerType.selectedIndex = n;
+						break;
+					}
+				}
+				// -- mise à jour nombre d'execution
+				tiMaxFireCount.text = _t.maxFireCount < int.MAX_VALUE && _t.maxFireCount > -1? _t.maxFireCount : "";
+			}
+			public function get trigger () : Object {
+				return _t;
+			}
+			
+			//---------------------------------------
+			// EVENT HANDLERS
+			//---------------------------------------
+			
+			private function onChangeTriggerType (e:Event) : void
+			{
+				/*if (e.target == cbTriggerType)
+				{*/
+					// on change son type (identifiant de classe)
+					var id:int = e.target.selectedItem.data;
+					if (id > 0) {
+						_t.triggerClassId = id;
+						currentState = "form" + _t.triggerClassId;
+					}
+				/*}*/
+				/*else
+				{
+					_t.fireType = cbTriggerFireType.selectedItem.data;
+				}*/
+
+			}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<mx:State name="form1">
+			<mx:AddChild><flmp:TriggerForm1 id="form1" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form10">
+			<mx:AddChild><flmp:TriggerForm10 id="form10" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form103">
+			<mx:AddChild><flmp:TriggerForm103 id="form103" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form2">
+			<mx:AddChild><flmp:TriggerForm2 id="form2" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form3">
+			<mx:AddChild><flmp:TriggerForm3 id="form3" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form4">
+			<mx:AddChild><flmp:TriggerForm4 id="form4" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form5">
+			<mx:AddChild><flmp:TriggerForm5 id="form5" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form6">
+			<mx:AddChild><flmp:TriggerForm6 id="form6" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form7">
+			<mx:AddChild><flmp:TriggerForm7 id="form7" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+		<mx:State name="form9">
+			<mx:AddChild><flmp:TriggerForm9 id="form9" trigger="{trigger}" /></mx:AddChild>
+		</mx:State>
+	</mx:states>
+	
+	<mx:HBox>
+		<mx:Label text="action" />
+		<flmp:DisabledComboBox id="cbTriggerType" width="100%" rowCount="100"
+					dataProvider="{triggerTypes}" close="onChangeTriggerType(event);" />
+		<mx:Label text="nbr exec" />
+		<mx:TextInput id="tiMaxFireCount" restrict="\-0-9" width="30"
+				change="trigger.maxFireCount = tiMaxFireCount.text.length > 0 ? int(tiMaxFireCount.text) : -1;" />
+		<!-- <flmp:DisabledComboBox id="cbTriggerFireType" dataProvider="{triggerFireTypes}"
+							width="100%" rowCount="100"
+				            close="onChangeTriggerType(event);" /> -->
+	</mx:HBox>
+	
+</mx:Box>

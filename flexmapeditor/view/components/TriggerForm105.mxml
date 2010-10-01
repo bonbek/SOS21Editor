@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.collections.ArrayCollection;
+		import flexmapeditor.vo.TriggerProperties;	
+		
+		/**
+		 *	Formulaire additionnel pour reach trigger
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		[Bindable]
+		private var dpTrig:ArrayCollection = new ArrayCollection([]);
+		[Bindable]
+		private var dpFail:ArrayCollection = new ArrayCollection([]);				
+		
+		private var firstInit:Boolean = true;
+		
+		// trigger en pris en charge par cette instances
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave() : void
+		{
+			updateOnSave();
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments() : Array
+		{
+			return ["time", "trig", "rcnt", "txt", "fail", "fxs", "fxt"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+			var args:Object = _trigger.arguments;
+			
+			args["time"] = nsTime.value;
+			
+			args["rcnt"] = nsRcount.value;
+			
+			args["fxs"] = ckbFxs.selected;
+			
+			args["fxt"] = ckbFxt.selected;
+			
+			var atrig:Array = [];
+			for each (var t:Object in dpTrig)
+				atrig.push(t.id);
+			if (atrig.length > 0) args["trig"] = atrig.join(",");
+			else
+				delete args["trig"];
+			args["txt"] = itWarn.text;
+			
+			if (dpFail.length > 0)
+			{
+				t = dpFail.getItemAt(0);
+				if (t) args["fail"] = t.id;				
+			} else {
+				delete args["fail"];
+			}
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 *	
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete () : void
+		{
+			var args:Object = _trigger.arguments;
+			nsTime.value = ("time" in args) ? args["time"] : 1;
+			
+			nsRcount.value = ("rcnt" in args) ? args["rcnt"] : 1;
+			
+			itWarn.text = ("txt" in args) ? args["txt"] : "";
+			
+			ckbFxs.selected = ("fxs" in args) ? args["fxs"] : true;
+
+			ckbFxt.selected = ("fxt" in args) ? args["fxt"] : true;
+			
+			dpTrig.removeAll();
+			if ("trig" in args)
+			{
+				var atrig:Array = String(args["trig"]).split(",");
+				var t:Object; 	// objet trigger
+				var tt:String;	// intitulé trigger
+				var s:Object;	// intitulé source
+				var it:Object;
+				for each (var st:String in atrig)
+				{
+					t = parentApplication.triggerEditor.getTrigger(st);
+					if (!t) continue;
+
+					it = {};
+					tt = TriggerProperties.triggerClasses[t.triggerClassId];
+					it.id = t.id;
+					it.title = tt;
+					t = parentApplication.isosceneHelper.getTile(t.refId);;
+					it.source = t ? t.name + " (id:" + t.ID + ")" : "aucune";
+					dpTrig.addItem(it);
+				}
+			}
+			dpFail.removeAll();
+			if ("fail" in args)
+			{
+				t = parentApplication.triggerEditor.getTrigger(String(args["fail"]));
+				if (t)
+				{
+					it = {};
+					tt = TriggerProperties.triggerClasses[t.triggerClassId];
+					it.id = t.id;
+					it.title = tt;
+					t = parentApplication.isosceneHelper.getTile(t.refId);;
+					it.source = t ? t.name + " (id:" + t.ID + ")" : "aucune";
+					dpFail.addItem(it);
+				}
+			}
+		}
+
+
+	    ]]>
+	</mx:Script>
+	
+	<!-- temps limite -->
+	<mx:HBox>
+		<mx:Label text="temps limite" />
+		<mx:NumericStepper id="nsTime" minimum="1" width="50" maximum="1000" />
+		<mx:Label text="au moins" />
+		<mx:NumericStepper id="nsRcount" minimum="1" width="40" maximum="1000" />
+	</mx:HBox>
+	<mx:HBox>
+		<mx:CheckBox id="ckbFxs" label="effet sonore" />
+		<mx:CheckBox id="ckbFxt" label="effet animé" />
+	</mx:HBox>
+	<mx:Label text="texte de l'étiquette" />
+	<mx:TextInput id="itWarn" width="100%" />
+	<!-- liste triggers -->	
+	<mx:HBox width="100%">
+		<mx:Label text="action(s) à effectuer" />
+		<mx:Spacer width="165" />
+		<mx:Button id="btRemDisableTrigger" label="x" width="30" toolTip="supprimer action" click="dgTrig.dataProvider.removeItemAt(dgTrig.selectedIndex)" />
+	</mx:HBox>
+	<mx:DataGrid id="dgTrig" width="99%" headerHeight="0" dataProvider="{dpTrig}" rowCount="2" editable="false" dropEnabled="true" sortableColumns="false" >
+        <mx:columns>
+            <mx:DataGridColumn width="20" dataField="id" headerText="id"/>
+			<mx:DataGridColumn width="100" dataField="title" headerText="action"/>
+			<mx:DataGridColumn width="100" dataField="source" headerText="source"/>			
+        </mx:columns>
+    </mx:DataGrid>
+	<mx:HBox>
+		<mx:Label text="action temps limite dépassé" />
+		<mx:Spacer width="120" />
+		<mx:Button label="x" width="30" toolTip="supprimer action" click="dgFail.dataProvider.removeItemAt(dgFail.selectedIndex)" />
+	</mx:HBox>
+	<mx:DataGrid id="dgFail" headerHeight="0" dataProvider="{dpFail}" width="99%" rowCount="1" editable="false" dropEnabled="true" sortableColumns="false" >
+        <mx:columns>
+            <mx:DataGridColumn width="20" dataField="id" headerText="id"/>
+			<mx:DataGridColumn width="100" dataField="title" headerText="action"/>
+			<mx:DataGridColumn width="100" dataField="source" headerText="source"/>			
+        </mx:columns>
+    </mx:DataGrid>
+</mx:VBox>
