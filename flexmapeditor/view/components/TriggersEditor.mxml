@@ -753,7 +753,6 @@
 				}
 				case toolbar.btnMoveCellTrigger.selected :
 				{
-					trace(this, "MOVE CELL");
 					switch (event.type)
 					{
 						case MouseEvent.MOUSE_DOWN :
