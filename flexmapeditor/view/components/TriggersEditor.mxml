@@ -209,29 +209,6 @@
 										source:getSourceDescription(tr), firetype:tr.fireEventType,
 										chained:schained, chainedTo:schainedTo, data:tr });			
 			}
-			
-			
-			var at:Object = {children:[]};
-			var trc:Object;
-			for (i = 0; i < n; i++)
-			{
-				tr = all[i];
-				var ob:Object = {label:tr.title};
-				at.children.push(ob);
-				if (!tr.hasChainedTrigger) continue;
-				
-				ob.children = [];
-				var chained:Array = tr.chainedTriggers;
-				for each (var c:int in chained)
-				{
-					trc = triggersProxy.getTrigger(c);
-					ob.children.push({label:tr.title})
-				}
-				
-			}
-			
-			testTree.dataProvider = at;
-			
 		}
 		
 		
@@ -1935,7 +1912,6 @@
 		<mx:State name="onAdd">
 			<mx:AddChild relativeTo="{parentApplication.optionBox}">
 				<mx:HBox id="testm" width="100%">
-
 					<mx:DataGrid id="dgAllTriggersList" width="100%" editable="true"
 									dataProvider="{dpAllTriggers}" dragEnabled="true" itemEditEnd="onEditTrigger(event);">
 				        <mx:columns>
