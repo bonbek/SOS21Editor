@@ -105,12 +105,13 @@
 	                <>
 	                    <menuitem label="Scene">
 	                        <menuitem label="Ouvrir" data="open" />
-							<menuitem label="Nouvelle" data="new" />
+							<menuitem label="Nouvelle" data="new" />							
 	                    </menuitem>
 	                    <menuitem label="Editer">
 							<menuitem label="les tiles" data="editTiles" type="radio" groupName="edit" />
 							<menuitem label="la grille de collisions" data="editCollisions" type="radio" groupName="edit" />
 	                        <menuitem label="les actions" data="editTrigger" type="radio" groupName="edit" />
+							<menuitem label="propriétés de scène" data="editMapConfig" type="radio" groupName="edit" />
 	                    </menuitem>
 	                    <menuitem label="Affichage">
 							<menuitem label="afficher le fond" data="dispBackground" type="check" toggled="true" />

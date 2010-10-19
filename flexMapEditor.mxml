@@ -131,6 +131,48 @@
 		}
 		
 		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Recharge la scène en cours
+		 */
+		public function reload () : void
+		{
+			if (!previewMode)
+			{
+				lastState = currentState;
+				currentState = null;
+			}
+
+			// on recharge
+			var mid:int = int(datamapProxy.getData().id);
+			beta.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+		}
+		
+		/**
+		 * 	Bascule en mode preview / dernier mode 
+		 */
+		public function switchPreview () : void
+		{
+			if (!previewMode)
+			{
+				lastState = currentState;
+				currentState = 'preview';
+				triggersProxy.triggersEnabled = true;
+				viewport.isosceneListenersEnabled = true;
+				bt_preview.selected = true;
+			}
+			else
+			{
+				currentState = lastState;
+				triggersProxy.triggersEnabled = false;
+				viewport.isosceneListenersEnabled = false;
+				bt_preview.selected = false;
+			}				
+		}
+		
+		//---------------------------------------
 		// EVENT HANDLERS
 		//---------------------------------------
 		
@@ -176,25 +218,6 @@
 				return;
 			}
 		}
-				
-		/**
-		 *	@private
-		 * 	Réception events du bouton prévis de la scène
-		 */
-		private function previewButtonHandler():void
-		{
-			switchPreview();
-		}
-		
-		/**
-		 *	@private
-		 * 	Reception events bouton recharger previs
-		 */
-		private function previewReloadButtonHandler():void
-		{
-			if (!previewMode) switchPreview();
-			reloadPreview();
-		}
 		
 		/**
 		 *	Reception des events dans la barre de menu 
@@ -206,7 +229,8 @@
 			var entry:String = event.item.@data;
 			switch (entry)
 			{
-				case "open" : // ouvrir une map
+				// > ouvrir une scène
+				case "open" :
 				{
 					// ouverture fenetre
 					var dBox:IFlexDisplayObject = PopUpManager.createPopUp(this, PopupList, true);
@@ -216,19 +240,28 @@
 					gateway.call( "sos21Services.getMapList", new Responder(onMaplistResult, onFault));
 					break;
 				}
+				// > édition des tiles
 				case "editTiles" :
 				{
 					currentState = 'editTiles';
 					break;
 				}
-				case "editCollisions" : // passage en édition collisions
+				// > édition collisions
+				case "editCollisions" :
 				{
 					currentState = 'editCollisions';
 					break;
 				}
-				case "editTrigger" : //  passage en edition triggers
+				//  > édition triggers
+				case "editTrigger" :
 				{
 					currentState = 'editTriggers';
+					break;
+				}
+				// > édition propriété de la scène
+				case "editMapConfig" :
+				{
+					currentState = "editMapConfig";
 					break;
 				}
 				case "dispBackground" :
@@ -381,27 +414,6 @@
 			}
 		}
 		
-		/**
-		 *	@private
-		 * 	Bascule en mode preview / dernier mode 
-		 */
-		private function switchPreview():void
-		{
-			if (!previewMode)
-			{
-				lastState = currentState;
-				currentState = 'preview';
-				triggersProxy.triggersEnabled = true;
-				viewport.isosceneListenersEnabled = true;
-				bt_preview.selected = true;
-			} else {
-				currentState = lastState;
-				triggersProxy.triggersEnabled = false;
-				viewport.isosceneListenersEnabled = false;
-				bt_preview.selected = false;
-			}				
-		}
-		
 		private function saveCurrentEdition(event:Event = null):void
 		{
 			switch (currentState)
@@ -419,7 +431,14 @@
 				case "editTiles" :
 				{
 					tilesEditor.save();
+					break;
 				}
+				case "editMapConfig" :
+				{
+					mapConfigEditor.save();
+					break;
+				}
+					
 			}
 		}
 		
@@ -467,6 +486,13 @@
 				<flmp:CollisionsEditor id="collisionsEditor" />
 			</mx:AddChild>
 		</mx:State>
+		<mx:State name="editMapConfig">
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="visible" value="true" />
+			<mx:SetProperty target="{saveCurrentEditBtn}" name="label" value="sauvegarder"/>
+			<mx:AddChild relativeTo="{propertyBox}">
+				<flmp:MapConfigEditor id="mapConfigEditor" />
+			</mx:AddChild>
+		</mx:State>
 	</mx:states>
 	
 	<mx:Box id="appCanvas" width="100%" height="100%" backgroundColor="#E8E8E8">
@@ -474,11 +500,11 @@
 			<flmp:ApplicationMenu id="menuBar" width="100%" />
 			<mx:Button id="bt_preview"
 				icon="@Embed('flexmapeditor/view/components/icons/rainbow.png')"
-				toolTip="tester la scène" toggle="true" click="previewButtonHandler()" />
+				toolTip="tester la scène" toggle="true" click="switchPreview()" />
 			<mx:Button id="bt_previewReload"
 				icon="@Embed('flexmapeditor/view/components/icons/arrow_refresh.png')"
 				toolTip="recharger / tester la scene"
-				click="previewReloadButtonHandler()" />
+				click="reload()" />
 		</mx:HBox>
 		<mx:HBox id="mainContent" width="100%" height="100%">
 			<mx:Box id="toolBox" width="32" height="100%" />
