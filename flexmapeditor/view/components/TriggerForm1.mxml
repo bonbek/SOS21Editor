@@ -199,20 +199,6 @@
 
 				dpDests.addItem(it);
 			}
-			// mise à jour liste des transports de chaque destination
-			/*var dtrans:Array;
-			var trans:Object;
-			for each (dest in dpDests)
-			{
-				if (!dest.trans) continue;
-
-				for each (var strans:String in dest.trans.split(","))
-				{
-					dtrans = strans.split("|");
-					trans = getTrans(dtrans[0]);
-					dpDestTrans.addItem({type:trans.type, title:dtrans.length > 1 ? dtrans[1] : trans.title, trans:trans});
-				}
-			}*/
 		}
 		
 		public function refreshDestTrans () : void
@@ -225,11 +211,14 @@
 			
 			var dtrans:Array;
 			var trans:Object;
-			for each (var strans:String in String(dest.trans).split(","))
+			for each (var strans:String in String(dest.trans).split("#"))
 			{
 				dtrans = strans.split("|");
 				trans = getTrans(dtrans[0]);
-				dpDestTrans.addItem({type:trans.type, title:dtrans.length > 1 ? dtrans[1] : trans.title, trans:trans});
+				dpDestTrans.addItem({type:trans.type,
+									title:dtrans.length > 1 ? dtrans[1] : trans.title,
+									info:dtrans.length > 2 ? dtrans[2] : "",
+									trans:trans});
 			}
 		}
 		
@@ -240,31 +229,56 @@
 		public function editDest (dest:Object) : void
 		{ 
 			currentState = 'editDest';
-			cbMapList.selectedItem = getMap(dest.map);
-			tiTitle.text = dest.title;
-			tiEntryPoint.text = dest.entryPoint;
+			
+			if (int(dest.map) > 0)
+			{
+				// selection combo
+				cbMapList.selectedItem = getMap(dest.map);
+				// intitulé
+				tiTitle.text = dest.title != cbMapList.selectedItem.title ? dest.title : "";
+				// point d'entrée
+				tiEntryPoint.text = dest.entryPoint;				
+			}
+			else
+			{
+				// intitulé
+				tiTitle.text = "";
+				// point d'entrée
+				tiEntryPoint.text = "";				
+			}
 		}
 
 		/**
-		 * Editer une transport
+		 * Editer un transport
 		 *	@param dest Object
 		 */
 		public function editTrans (trans:Object) : void
 		{ 
 			currentState = "editTrans";
+
+			// sélection combo
 			cbTransList.selectedItem = getTrans(trans.trans.id);
-			tiTranTitle.text = trans.title;
+			// intitulé
+			tiTranTitle.text = trans.title.length > 0 ? trans.title
+												 	: cbTransList.selectedItem.title;
+			taTransInfo.text = trans.info;
 		}
 		
 		//---------------------------------------
 		// EVENT HANDLERS
 		//---------------------------------------
 		
+		/**
+		 *	Mise à jour item destination
+		 */
 		private function updateDest () : void
 		{
 			var dest:Object = dgDests.selectedItem;
+			// id scène destination
 			dest.map = dpMaps.getItemAt(cbMapList.selectedIndex).id;
-			dest.title = tiTitle.text;
+			// intitulé
+			dest.title = tiTitle.text.length > 5 ? tiTitle.text : dpMaps.getItemAt(cbMapList.selectedIndex).title;
+			// point d'entrée
 			if (tiEntryPoint.text.length > 3) dest.entryPoint = tiEntryPoint.text;
 			else
 				delete dest.entryPoint;
@@ -272,28 +286,40 @@
 			dpDests.itemUpdated(dest);
 		}
 		
+		/**
+		 * Mise à jour item transport
+		 *	@param trans Object
+		 */
 		private function updateTrans (trans:Object = null) : void
 		{
 			if (trans)
-			{
-				var trans:Object = dgTrans.selectedItem;
+			{				
+				// descripteur transport (dp liste des transports)
 				var dtrans:Object = dpTrans.getItemAt(cbTransList.selectedIndex);
+				// item à updater
+				var trans:Object = dgTrans.selectedItem;
+				// type
 				trans.type = dtrans.type;
-				trans.title = tiTranTitle.text;
+				// intitulé
+				trans.title = tiTranTitle.text != dtrans.title &&  tiTranTitle.text.length > 3 ? tiTranTitle.text : dtrans.title;
+				trans.info = taTransInfo.text;
 				trans.trans = dtrans;
+
 				dpDestTrans.itemUpdated(trans);
 			}
 			
+			// version encodée
 			var entrans:Array = [];
 			var strans:String;
 			for each (trans in dpDestTrans)
 			{
 				strans = trans.trans.id;
-				if (trans.title != trans.trans.title) strans += "|" + trans.title;
+				strans += "|" + trans.title;
+				if (trans.info.length > 2) strans += "|" + trans.info;
 				entrans.push(strans);
 			}
 			
-			if (entrans.length > 0) dgDests.selectedItem.trans = entrans.join(",");
+			if (entrans.length > 0) dgDests.selectedItem.trans = entrans.join("#");
 			else
 				delete dgDests.selectedItem.trans;
 		}
@@ -307,13 +333,21 @@
 			switch(event.item.id)
 			{
 				case "add" :
-					dpDests.addItem({title:"nouv. destination", map:0, entryPoint:""});
+					var entry:Object = {title:"", map:0, entryPoint:""};
+					dpDests.addItem(entry);
+					dgDests.selectedItem = entry;
+					refreshDestTrans();
+					editDest(entry);
 					break;
 				case "remove" :
-					if (dgDests.selectedItem) dpDests.removeItemAt(dgDests.selectedIndex);
+					if (dgDests.selectedItem)
+					{
+						dpDests.removeItemAt(dgDests.selectedIndex);
+						refreshDestTrans();
+					}
 					break;
 				case "up" :
-					var entry:Object = dgDests.selectedItem;
+					entry = dgDests.selectedItem;
 					if (entry)
 					{
 						var ind:int = dgDests.selectedIndex;
@@ -354,13 +388,16 @@
 			switch(event.item.id)
 			{
 				case "add" :
-					dpDestTrans.addItem({type:"nouv. tarnsport", title:"en..", trans:getTrans(1)});					
+					var entry:Object = {type:"", title:"", info:"", trans:getTrans(1)};
+					dpDestTrans.addItem(entry);
+					dgTrans.selectedItem = entry;
+					editTrans(entry);					
 					break;
 				case "remove" :
 					if (dgTrans.selectedItem) dpDestTrans.removeItemAt(dgTrans.selectedIndex);
 					break;
 				case "up" :
-					var entry:Object = dgTrans.selectedItem;
+					entry = dgTrans.selectedItem;
 					if (entry)
 					{
 						var ind:int = dgTrans.selectedIndex;
@@ -419,31 +456,6 @@
 			}
 			
 			refreshDestsList();
-			// on mets à jour l'affichage
-			/*if (_trigger.arguments["entryPoint"])
-						{
-							var p:Array = _trigger.arguments["entryPoint"].split("/");
-							ti_xentryPoint.text = p[0];
-							ti_yentryPoint.text = p[1];
-							ti_zentryPoint.text = p[2];
-						} else {
-							ti_xentryPoint.text = "";
-							ti_yentryPoint.text = "";
-							ti_zentryPoint.text = "";				
-						}
-						if (_trigger.arguments["mapid"])
-						{
-							var mid:int = _trigger.arguments["mapid"];
-							var n:int = mapList.length;
-							while (--n > -1)
-							{
-								if (mapList[n].id == mid)
-								{
-									cb_mapList.selectedIndex = n
-									break;
-								}
-							}
-						}*/
 		}
 		
 		private function onMapListFault (fault:String) : void
@@ -481,6 +493,7 @@
 		<!-- options editer destination -->
 		<mx:State name="editDest">
 			<mx:SetProperty target="{dgDests}" name="enabled" value="false" />
+			<mx:RemoveChild target="{bDest}" />
 			<mx:RemoveChild target="{bTrans}" />
 			<mx:AddChild>
 				<mx:Box paddingTop="4" paddingBottom="4" paddingLeft="4" backgroundColor="#E8E8E8" width="100%">
@@ -497,8 +510,10 @@
 				</mx:Box>
 			</mx:AddChild>			
 		</mx:State>
+
 		<mx:State name="editTrans">
 			<mx:SetProperty target="{dgDests}" name="enabled" value="false" />
+			<mx:RemoveChild target="{bDest}" />			
 			<mx:RemoveChild target="{bTrans}" />
 			<mx:AddChild>
 				<mx:Box paddingTop="4" paddingBottom="4" paddingLeft="4" backgroundColor="#E8E8E8" width="100%">
@@ -506,30 +521,37 @@
 						dataProvider="{dpTrans}" change="tiTranTitle.text=cbTransList.selectedItem.title" />
 					<mx:Label text="Intitulé" />
 					<mx:TextInput id="tiTranTitle" width="320" />
-					<mx:Button label="ok" click="updateTrans(dgTrans.selectedItem);currentState=null;" />
+					<mx:Label text="Résumé de fin" />
+					<mx:TextArea id="taTransInfo" width="100%" height="100" restrict="^|#" />
+					<mx:HBox width="100%" horizontalAlign="right">
+						<mx:Button label="ok" click="updateTrans(dgTrans.selectedItem);currentState=null;" />
+					</mx:HBox>
 				</mx:Box>
 			</mx:AddChild>
 		</mx:State>
 	</mx:states>
 	<!--
 	Destinations -->
-	<mx:HBox>
-		<mx:Label text="Destination(s)" />
-		<mx:ButtonBar id="buttonBar"
-			direction="horizontal" buttonHeight="20" buttonWidth="20"
-			horizontalAlign="center" verticalAlign="middle"				
-			horizontalGap="6" verticalGap="0" focusEnabled="false"
-			dataProvider="{dpButtonBar}" itemClick="editDestEntrys(event)" />
-	</mx:HBox>
-	<mx:DataGrid id="dgDests" width="100%" dataProvider="{dpDests}" rowCount="3"
-		doubleClickEnabled="true" itemClick="refreshDestTrans()" itemDoubleClick="editDest(dgDests.selectedItem)">
-		<mx:columns>
-			<mx:DataGridColumn headerText="intitulé / scène" dataField="title" />
-			<mx:DataGridColumn headerText="entrée" dataField="entryPoint" width="80" />
-		</mx:columns>
-	</mx:DataGrid>
+
+	<mx:Box id="bDest" width="100%">
+		<mx:HBox>
+			<mx:Label text="Destination(s)" />
+			<mx:ButtonBar id="buttonBar"
+				direction="horizontal" buttonHeight="20" buttonWidth="20"
+				horizontalAlign="center" verticalAlign="middle"				
+				horizontalGap="6" verticalGap="0" focusEnabled="false"
+				dataProvider="{dpButtonBar}" itemClick="editDestEntrys(event)" />
+		</mx:HBox>
+		<mx:DataGrid id="dgDests" width="100%" dataProvider="{dpDests}" rowCount="3"
+			doubleClickEnabled="true" itemClick="refreshDestTrans()" itemDoubleClick="editDest(dgDests.selectedItem)">
+			<mx:columns>
+				<mx:DataGridColumn headerText="intitulé / scène" dataField="title" />
+				<mx:DataGridColumn headerText="entrée" dataField="entryPoint" width="80" />
+			</mx:columns>
+		</mx:DataGrid>
+	</mx:Box>
 	
-	<mx:Box id="bTrans" width="100%">
+	<mx:Box id="bTrans" width="100%" enabled="{dgDests.selectedItem != null}">
 		<mx:HBox>
 			<mx:Label text="Transport(s)" />
 			<mx:ButtonBar
