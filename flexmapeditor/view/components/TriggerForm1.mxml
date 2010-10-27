@@ -82,9 +82,7 @@
 		 *	@private
 		 */
 		public function safeSave () : void
-		{
-			updateOnSave();
-		}
+		{ }
 		
 		/**
 		 * Retourne la liste des Arguments "vitaux" pour ce type
@@ -96,7 +94,6 @@
 		
 		/**
 		 *	Appelé à la suppression d'un trigger
-		 *  
 		 *	@param	trigger	 qui va être supprimé
 		 *	@private
 		 */
@@ -114,32 +111,31 @@
 			var o:Object;
 			for each (var d:Object in dpDests.source)
 			{
-				o = {title:d.title, map:d.map};
-				if (d.trans) o.trans = d.trans;
+				o = {title:d.title, mapId:d.mapId};
 				if (d.entryPoint) o.entryPoint = d.entryPoint;
+				if ("trans" in d)
+				{
+					var atrans:Array = [];
+					var otrans:Object;
+					for each (var dt:Object in d.trans)
+					{
+						otrans = getTrans(dt.id);
+						var t:Object = {id:dt.id}
+						if (dt.title != otrans.title) t.title = dt.title;
+						if (dt.info) t.info = dt.info;
+						atrans.push(t);
+					}
+					o.trans = atrans;
+				}
+
 				dest.push(o);
 			}
 
 			_trigger.arguments["dest"] = dest;
-			/*_trigger.arguments["mapid"] = cb_mapList.selectedItem.id;
-			if (ti_xentryPoint.text.length >= 1)
-			{
-				var x:int = int(ti_xentryPoint.text);
-				var y:int = int(ti_yentryPoint.text);
-				var z:int = int(ti_zentryPoint.text);
-				if (x + y + z > 0)
-				{
-					_trigger.arguments["entryPoint"] = String(x + "/" + y + "/" + z);
-					return
-				}
-			}
-			
-			// mise à jour du formulaire
-			ti_xentryPoint.text = "";
-			ti_yentryPoint.text = "";
-			ti_zentryPoint.text = "";
-			// suppression de l'argument invalide
-			delete _trigger.arguments["entryPoint"];*/
+
+			// Suppresion encodage V1
+			if ("mapid" in _trigger.arguments) delete _trigger.arguments["mapid"];
+			if ("entryPoint" in _trigger.arguments) delete _trigger.arguments["entryPoint"];
 		}
 		
 		/**
@@ -176,49 +172,55 @@
 		{
 			dpDests.removeAll();
 			dpDestTrans.removeAll();
-
+			
+			trace(this, "refreshDestsList");
+			
 			// mise à jour liste des destinations
-			if (_trigger.arguments["dest"])
+			if ("dest" in _trigger.arguments)
 			{
 				for each (var dest:Object in _trigger.arguments["dest"])
 					dpDests.addItem(dest);
 			}
-			// patch ancienne version trigger
+			// patch V1
 			else
 			{
 				var it:Object = {};
-				if (_trigger.arguments["mapid"])
+				if ("mapid" in _trigger.arguments)
 				{
 					var m:Object = getMap(_trigger.arguments["mapid"]);
-					it.map = m.id;
+					it.mapId = m.id;
 					it.title = m.title;
 				}
 				
-				if (_trigger.arguments["entryPoint"])
+				if ("entryPoint" in _trigger.arguments)
+				{
 					it.entryPoint = _trigger.arguments["entryPoint"];
+				}
 
 				dpDests.addItem(it);
 			}
 		}
 		
+		/**
+		 * Rafraichît la liste des transports
+		 * pour la destination selectionné
+		 */
 		public function refreshDestTrans () : void
 		{
 			dpDestTrans.removeAll();
 
 			var dest:Object = dgDests.selectedItem;
 			if (!dest) return;
-			if (!dest.trans) return;
+			if (!("trans" in dest)) return;
 			
-			var dtrans:Array;
-			var trans:Object;
-			for each (var strans:String in String(dest.trans).split("#"))
+			var dtrans:Object;
+			for each (var trans:Object in dest.trans)
 			{
-				dtrans = strans.split("|");
-				trans = getTrans(dtrans[0]);
-				dpDestTrans.addItem({type:trans.type,
-									title:dtrans.length > 1 ? dtrans[1] : trans.title,
-									info:dtrans.length > 2 ? dtrans[2] : "",
-									trans:trans});
+				// descripteur originel
+				dtrans = getTrans(trans.id);
+				dpDestTrans.addItem({id:dtrans.id, type:dtrans.type,
+									title:("title" in trans) ? trans.title : dtrans.title,
+									info:("info" in trans) ? trans.info : null});
 			}
 		}
 		
@@ -230,21 +232,21 @@
 		{ 
 			currentState = 'editDest';
 			
-			if (int(dest.map) > 0)
+			if (int(dest.mapId) > 0)
 			{
 				// selection combo
-				cbMapList.selectedItem = getMap(dest.map);
+				cbMapList.selectedItem = getMap(dest.mapId);
 				// intitulé
 				tiTitle.text = dest.title != cbMapList.selectedItem.title ? dest.title : "";
 				// point d'entrée
-				tiEntryPoint.text = dest.entryPoint;				
+				tiEntryPoint.text = dest.entryPoint;			
 			}
 			else
 			{
 				// intitulé
 				tiTitle.text = "";
 				// point d'entrée
-				tiEntryPoint.text = "";				
+				tiEntryPoint.text = "";
 			}
 		}
 
@@ -257,11 +259,11 @@
 			currentState = "editTrans";
 
 			// sélection combo
-			cbTransList.selectedItem = getTrans(trans.trans.id);
+			cbTransList.selectedItem = getTrans(trans.id);
 			// intitulé
-			tiTranTitle.text = trans.title.length > 0 ? trans.title
-												 	: cbTransList.selectedItem.title;
-			taTransInfo.text = trans.info;
+			tiTranTitle.text = trans.title.length > 0 	? trans.title
+												 		: cbTransList.selectedItem.title;
+			taTransInfo.text = trans.info ? trans.info : "";
 		}
 		
 		//---------------------------------------
@@ -275,7 +277,7 @@
 		{
 			var dest:Object = dgDests.selectedItem;
 			// id scène destination
-			dest.map = dpMaps.getItemAt(cbMapList.selectedIndex).id;
+			dest.mapId = dpMaps.getItemAt(cbMapList.selectedIndex).id;
 			// intitulé
 			dest.title = tiTitle.text.length > 5 ? tiTitle.text : dpMaps.getItemAt(cbMapList.selectedIndex).title;
 			// point d'entrée
@@ -299,31 +301,22 @@
 				// item à updater
 				var trans:Object = dgTrans.selectedItem;
 				// type
+				trans.id = dtrans.id;
 				trans.type = dtrans.type;
 				// intitulé
 				trans.title = tiTranTitle.text != dtrans.title &&  tiTranTitle.text.length > 3 ? tiTranTitle.text : dtrans.title;
-				trans.info = taTransInfo.text;
-				trans.trans = dtrans;
+				trans.info = taTransInfo.text.length > 3 ? taTransInfo.text : null;
 
 				dpDestTrans.itemUpdated(trans);
 			}
 			
 			// version encodée
-			var entrans:Array = [];
-			var strans:String;
-			for each (trans in dpDestTrans)
-			{
-				strans = trans.trans.id;
-				strans += "|" + trans.title;
-				if (trans.info.length > 2) strans += "|" + trans.info;
-				entrans.push(strans);
-			}
-			
-			if (entrans.length > 0) dgDests.selectedItem.trans = entrans.join("#");
+			var entrans:Array = dpDestTrans.source.concat();
+			if (entrans.length > 0) dgDests.selectedItem.trans = entrans;
 			else
 				delete dgDests.selectedItem.trans;
 		}
-		
+
 		/**
 		 * Réception edition des entrées dg destinations
 		 *	@param event ItemClickEvent
@@ -333,7 +326,7 @@
 			switch(event.item.id)
 			{
 				case "add" :
-					var entry:Object = {title:"", map:0, entryPoint:""};
+					var entry:Object = {title:"", mapId:0, entryPoint:""};
 					dpDests.addItem(entry);
 					dgDests.selectedItem = entry;
 					refreshDestTrans();
@@ -388,10 +381,10 @@
 			switch(event.item.id)
 			{
 				case "add" :
-					var entry:Object = {type:"", title:"", info:"", trans:getTrans(1)};
+					var entry:Object = {id:1, type:"", title:"", info:null, trans:getTrans(1)};
 					dpDestTrans.addItem(entry);
 					dgTrans.selectedItem = entry;
-					editTrans(entry);					
+					editTrans(entry);		
 					break;
 				case "remove" :
 					if (dgTrans.selectedItem) dpDestTrans.removeItemAt(dgTrans.selectedIndex);
@@ -430,6 +423,10 @@
 			updateOnSave();
 		}
 		
+		/**
+		 * Réception liste des transports
+		 *	@param result Array
+		 */
 		private function onTransportationListResult (result:Array) : void
 		{
 			dpTrans.source = result;
@@ -473,21 +470,6 @@
 
 	    ]]>
 	</mx:Script>
-	
-	<!-- <mx:Label width="100%" text="aller à la map" />
-	<mx:ComboBox id="cb_mapList" width="300"
-		 				rowCount="10"
-						dataProvider="{mapList}"
-						labelField="title" />
-	<mx:Label width="100%" text="point d'entrée :" />
-	<mx:HBox width="100%">
-		<mx:Label text="x :" />
-		<mx:TextInput id="ti_xentryPoint" editable="true" maxChars="3" restrict="0-9" />
-		<mx:Label text="y :" />
-		<mx:TextInput id="ti_yentryPoint" editable="true" maxChars="3" restrict="0-9" />
-		<mx:Label text="z :" />
-		<mx:TextInput id="ti_zentryPoint" editable="true" maxChars="3" restrict="0-9" />
-	</mx:HBox> -->
 	
 	<mx:states>
 		<!-- options editer destination -->
