@@ -279,7 +279,9 @@
 				if (e.target.selected)
 				{
 					parentApplication.viewport.addEventListener(MouseEvent.MOUSE_UP, selectBobMoveDest, false, 500, true);
-				} else {
+				}
+				else
+				{
 					parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, selectBobMoveDest, false);
 					btBobDest.selected = false;
 				}

@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.collections.ArrayCollection;
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.events.ItemClickEvent;
+		
+		/**
+		 *	Formulaire additionnel pour triggers type action sur tile
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		[Embed("icons/textfield_add.png")]
+		public var addIcon:Class;
+		[Embed("icons/textfield_delete.png")]
+		public var deleteIcon:Class;
+		[Embed("icons/arrow_up.png")]
+		public var arrowUpIcon:Class;
+		[Embed("icons/arrow_down.png")]
+		public var arrowDownIcon:Class;
+
+		[Bindable]
+		public var dpButtonBar:Array = [	{ icon:addIcon, toolTip:"ajouter une entrée", id:"add" },
+											{ icon:deleteIcon, toolTip:"supprimer l'entrée selectionée", id:"remove" },
+											{ icon:arrowUpIcon, toolTip:"déplacer", id:"up"},
+											{ icon:arrowDownIcon, toolTip:"déplacer", id:"down"} ];
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		[Bindable]
+		private var dpActions:ArrayCollection = new ArrayCollection();
+		// liste types d'actions
+		[Bindable]
+		private var actionTypes:Array = [	{label:"cacher", data:0},
+											{label:"afficher", data:1}	];
+		
+		
+		private function get sAction () : Object
+		{ return dgActions.selectedItem; }
+		
+		// -------
+		private var firstInit:Boolean = true;
+		// trigger en pris en charge par cette instances
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 *	@private
+		 */
+		public function safeSave() : void
+		{
+			updateOnSave();
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments() : Array
+		{
+			return ["act", "lp"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+			var nl:Array = [];
+			for each (var it:Object in dpActions)
+			{
+				nl.push({t:it.t,
+						a:it.a,
+						d:it.d,
+						we:it.we});
+			}
+
+			_trigger.arguments["act"] = nl;
+			_trigger.arguments["lp"] = nsLoop.value;
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		/**
+		 * Edition paramètres action
+		 *	@param event Event
+		 */
+		private function onEditAction (event:Event) : void
+		{
+			var target:Object = event.target;
+			switch (target)
+			{
+				// checkbox boucle
+				case ckLoop :
+					if (!ckLoop.selected)
+						nsLoop.value = 1;
+				case nsLoop :
+					_trigger.arguments["lp"] = nsLoop.value;
+					break;
+				// bouton selectioner cible
+				case btTarget :
+					if (btTarget.selected)
+						parentApplication.viewport.addEventListener(MouseEvent.MOUSE_UP, onSelectTarget, false, 500, true);
+					else
+						parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, onSelectTarget, false);				
+					break;
+				// combo type d'action
+				case cbActionType :
+					sAction.a = target.selectedIndex;
+					dpActions.itemUpdated(sAction);
+					break;
+				case nsDuration :
+					sAction.d = nsDuration.value;
+					dpActions.itemUpdated(sAction);
+					break;
+				case ckWaitEnd :
+					sAction.we = int(ckWaitEnd.selected);
+					dpActions.itemUpdated(sAction);
+					break;
+			}
+		}
+		
+		/**
+		 * Réception selection du tile cible
+		 *	@param event Event
+		 */
+		private function onSelectTarget (event:Event) : void
+		{
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			if ("ID" in event.target)
+			{
+				parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, onSelectTarget, false);
+				sAction.t = event.target.ID;
+				dpActions.itemUpdated(sAction);
+				btTarget.selected = false;
+			}
+		}
+		
+		/**
+		 * Selection action dans la liste
+		 *	@private
+		 */
+		private function onSelectAction () : void
+		{
+			// maj
+			cbActionType.selectedIndex = sAction.a;
+			nsDuration.value = sAction.d;
+			ckWaitEnd.selected = sAction.we;
+		}
+		
+		/**
+		 * Réception edition des entrées dg actions
+		 *	@param event ItemClickEvent
+		 */
+		private function onEditEntrys (event:ItemClickEvent) : void
+		{
+			switch(event.item.id)
+			{
+				case "add" :
+					var entry:Object = {t:"", a:0, d:0, we:1};
+					dpActions.addItem(entry);
+//					dgActions.selectedItem = entry;
+					break;
+				case "remove" :
+					if (dgActions.selectedItem)
+					{
+						dpActions.removeItemAt(dgActions.selectedIndex);
+					}
+					break;
+				case "up" :
+					entry = dgActions.selectedItem;
+					if (entry)
+					{
+						var ind:int = dgActions.selectedIndex;
+						if (ind - 1 > -1)
+						{
+							dpActions.removeItemAt(ind);
+							dpActions.addItemAt(entry, --ind);
+							dgActions.selectedItem = entry;
+							dgActions.scrollToIndex(ind);
+						}							
+					}
+					break;
+				case "down" :
+					entry = dgActions.selectedItem;
+					if (entry)
+					{
+						ind = dgActions.selectedIndex;
+						if (ind + 1 < dpActions.length)
+						{
+							dpActions.removeItemAt(ind)
+							dpActions.addItemAt(entry, ++ind);
+							dgActions.selectedItem = entry;
+							dgActions.scrollToIndex(ind);
+						}
+							
+					}
+					break;
+			}
+			
+			updateOnSave();
+		}
+		
+		
+		private function labelFunction (item:Object, column:DataGridColumn) : String
+		{
+			var l:String;
+			switch (column.dataField)
+			{
+				case "t" :
+					var t:Object = parentApplication.isosceneHelper.getTile(item.t);
+					if (t)
+						l = t.name;
+					break;
+				case "a" :
+					l = actionTypes[item.a].label;
+					break;
+			}
+			return l;
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 */
+		private function onCreationComplete () : void
+		{
+			// clean dataProvider
+			dpActions.removeAll();
+			// maj
+			var args:Object = _trigger.arguments;
+			if ("act" in args)
+			{
+				dpActions.source = args["act"].slice();
+			}
+			if ("lp" in args)
+			{
+				ckLoop.selected = args["lp"] != 1;
+				nsLoop.value = args["lp"];
+			} else {
+				nsLoop.value = 1
+				ckLoop.selected = false;
+				updateOnSave();
+			}	
+		}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:HBox>
+		<mx:ButtonBar id="buttonBar"
+			direction="horizontal" buttonHeight="20" buttonWidth="20"
+			horizontalAlign="center" verticalAlign="middle"				
+			horizontalGap="6" verticalGap="0" focusEnabled="false"
+			dataProvider="{dpButtonBar}" itemClick="onEditEntrys(event)" />
+		<mx:CheckBox id="ckLoop" label="répéter" change="onEditAction(event)" />
+		<mx:NumericStepper id="nsLoop" maximum="1000" enabled="{ckLoop.selected}" change="onEditAction(event)" />
+	</mx:HBox>
+	<mx:DataGrid id="dgActions" headerHeight="0" dataProvider="{dpActions}" width="99%" rowCount="5"
+		itemClick="onSelectAction()">
+        <mx:columns>
+            <mx:DataGridColumn width="150" dataField="t" headerText="objet" labelFunction="labelFunction" />
+			<mx:DataGridColumn width="120" dataField="a" headerText="action" labelFunction="labelFunction" />
+			<mx:DataGridColumn dataField="source" headerText="durée" labelFunction="labelFunction" />
+        </mx:columns>
+    </mx:DataGrid>
+	<mx:HBox enabled="{dgActions.selectedItem != null}">
+		<mx:Button id="btTarget" toggle="true" change="onEditAction(event)" />
+		<mx:ComboBox id="cbActionType" dataProvider="{actionTypes}" close="onEditAction(event)" />
+		<mx:Label text="durée" />
+		<mx:NumericStepper id="nsDuration" stepSize=".1" enabled="{!ckWaitEnd.selected}" change="onEditAction(event)" />
+		<mx:CheckBox id="ckWaitEnd" label="att. fin" change="onEditAction(event)" />
+	</mx:HBox>
+
+</mx:VBox>

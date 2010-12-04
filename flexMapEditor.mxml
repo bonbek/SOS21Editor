@@ -32,6 +32,7 @@
 		import flash.net.NetConnection;
 		import flash.net.ObjectEncoding;
 		import flash.net.Responder;
+		import flash.system.Security;
 		
 		import ddgame.client.proxy.ProxyList;
 		import ddgame.client.view.HelperList;
@@ -67,7 +68,7 @@
 		//---------------------------------------
 		
 		// connection amfphp
-		public var gateway:NetConnection;
+		private var _gateway:NetConnection;
 		public var beta:Object;
 		// facade de la beta
 		public var facade:Object;
@@ -83,6 +84,8 @@
 		// ObjectBuilderProxy
 		public var objectBuilderProxy:Object;
 
+		public var configProxy:Object;
+
 		[Bindable]
 		public var saveBtnLabel:String;
 
@@ -90,6 +93,9 @@
 		//---------------------------------------
 		// GETTER / SETTERS
 		//---------------------------------------
+		
+		public function get gateway () : NetConnection
+		{ return _gateway; }
 		
 		/**
 		 * Retourne l'état "en preview" de l'appli
@@ -107,6 +113,14 @@
 		{
 			
 			facade = val;
+			
+			configProxy = facade.getProxy("configProxy");
+			// connection remoting
+			var rhost:String = configProxy.getContent("services_path");
+			_gateway = new NetConnection();
+			_gateway.objectEncoding = ObjectEncoding.AMF0;
+			_gateway.connect(rhost);
+			_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
 			
 			// stockage des refs
 			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY)
@@ -126,7 +140,7 @@
 			facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 0, true);
 			// ecoute clavier
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
-			
+	
 			currentState = "editTriggers";
 		}
 		
@@ -237,7 +251,7 @@
 					PopUpManager.centerPopUp(dBox);
 					currentPopup = dBox;
 					// on lance la recup de la liste des maps
-					gateway.call( "sos21Services.getMapList", new Responder(onMaplistResult, onFault));
+					_gateway.call( "sos21Services.getMapList", new Responder(onMaplistResult, onFault));
 					break;
 				}
 				// > édition des tiles
@@ -277,6 +291,11 @@
 				case "dispTiles" :
 				{
 					viewport.tilesVisible = Boolean(event.item.@toggled == "true" ? true : false);
+					break;
+				}
+				case "dispHiddenTiles" :
+				{
+					viewport.showHiddenTiles = Boolean(event.item.@toggled == "true" ? true : false);
 					break;
 				}
 				case "dispWall" :
@@ -353,13 +372,13 @@
 				var ind:int = users.indexOf(iname);
 				if (ind == usersPass.indexOf(ipass) && ind > -1)
 				{
-					gateway.addHeader( "Credentials", false, {userid: "lapin", password: "bleu"} );
+					_gateway.addHeader( "Credentials", false, {userid: "lapin", password: "bleu"} );
 					logged = true;
 				} else {
 					ind = admin.indexOf(iname);
 					if (ind == adminPass.indexOf(ipass) && ind > -1)
 					{
-						gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
+						_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
 						logged = true;
 					}
 				}
@@ -379,13 +398,15 @@
 		 */
 		private function onCreationComplete():void
 		{
+			Security.allowDomain("*");
+			
 			// remoting
-			var rhost:String = Application.application.parameters.rhost;
-			if (!rhost) rhost = "/amfphp/gateway.php";				
-			gateway = new NetConnection();
-			gateway.objectEncoding = ObjectEncoding.AMF0;
-			gateway.connect(rhost);
-			gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
+			/*var rhost:String = Application.application.parameters.rhost;
+						if (!rhost) rhost = "/amfphp/_gateway.php";				
+						_gateway = new NetConnection();
+						_gateway.objectEncoding = ObjectEncoding.AMF0;
+						_gateway.connect(rhost);
+						_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );*/
 			
 			// boite login
 			/*var dBox:IFlexDisplayObject = PopUpManager.createPopUp(viewport, LoginBox, true);
@@ -395,6 +416,8 @@
 			
 			// ecoute selection dans menu
 			menuBar.addEventListener(MenuEvent.ITEM_CLICK, menuBarHandler, false, 100, true);
+			
+			focusManager.deactivate();
 		}
 		
 		//---------------------------------------
@@ -495,13 +518,15 @@
 		</mx:State>
 	</mx:states>
 	
-	<mx:Box id="appCanvas" width="100%" height="100%" backgroundColor="#E8E8E8">
-		<mx:HBox width="100%">
+	<mx:Box id="appCanvas" width="100%" height="100%" backgroundColor="#E8E8E8" focusEnabled="false">
+		<mx:HBox width="100%" focusEnabled="false">
 			<flmp:ApplicationMenu id="menuBar" width="100%" />
-			<mx:Button id="bt_preview"
+			<flmp:SButton id="bt_preview"
 				icon="@Embed('flexmapeditor/view/components/icons/rainbow.png')"
-				toolTip="tester la scène" toggle="true" click="switchPreview()" />
-			<mx:Button id="bt_previewReload"
+				toolTip="tester la scène" toggle="true" click="switchPreview()" 
+				focusEnabled="false"
+				mouseFocusEnabled="false" />
+			<flmp:SButton id="bt_previewReload"
 				icon="@Embed('flexmapeditor/view/components/icons/arrow_refresh.png')"
 				toolTip="recharger / tester la scene"
 				click="reload()" />
@@ -520,10 +545,11 @@
 			
 					<mx:VBox width="100%" height="100%">
 						<mx:HBox id="propertyBox" width="100%" height="100%" backgroundColor="#E8E8E8" />
-						<mx:Button id="saveCurrentEditBtn" width="100%"
+						<flmp:SButton id="saveCurrentEditBtn" width="100%"
 									icon="@Embed('flexmapeditor/view/components/icons/disk.png')"
 									visible="false"
 									label=""
+									focusEnabled="false"
 									toolTip="{saveBtnLabel}"
 									click="saveCurrentEdition(event);"/>
 					</mx:VBox>

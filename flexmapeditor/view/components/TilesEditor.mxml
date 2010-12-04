@@ -97,6 +97,14 @@
 			return String(na + 1);
 		}
 		
+		public function getTileData (id:String) : Object
+		{
+			for each (var dt:Object in parentApplication.datamapProxy.tileList)
+				if (dt.id == id) return dt;
+			
+			return null;
+		}
+		
 		/**
 		 * 	Sauvegarde
 		 * - 
@@ -116,13 +124,12 @@
 			var t:Object;
 			var st:Object;
 			var upTileList:Array = [];
-			while(--n > -1)
+			while (--n > -1)
 			{
 				t = tileList[n];
 				st = {id:t.id, refId:t.refId, pos:{x:t.pos.x, y:t.pos.y, z:t.pos.z, r:t.pos.r}};
-				if ("pnj" in t) {
-					st.pnj = t.pnj;
-				}
+				if ("pnj" in t) st.pnj = t.pnj;
+				if ("hi" in t) st.hi = t.hi;
 				upTileList.push(st);
 			}
 			
@@ -213,7 +220,7 @@
 								// effacement info
 								tileInfo.text = "";
 							}
-											
+
 							// ombre
 							var upos:Object = tile.upos;
 							var tileData:Object = {width:upos.width, depth:upos.depth};
@@ -222,7 +229,7 @@
 							currentTileShadow.upos.xFactor = upos.xFactor;
 							currentTileShadow.upos.yFactor = upos.yFactor;
 							currentTileShadow.upos.zFactor = upos.zFactor;
-							
+
 							isoscene.groundLayer.addTile(currentTileShadow);
 
 							// update NumericSteppers position
@@ -244,17 +251,21 @@
 							
 							stage.addEventListener(MouseEvent.MOUSE_MOVE, mouseEditTileInSceneHandler, false, 0, true);
 							parentApplication.viewport.addEventListener(MouseEvent.MOUSE_UP, mouseEditTileInSceneHandler, false, 0, true);
-							
+
 							tile.filters = [selectFx];
 							currentTile = tile;
 							removeRollListeners();
+							
 							// affichage info
-							var dt:Object;
-							for each (dt in parentApplication.datamapProxy.tileList)
-								if (dt.id == currentTile.ID) break;
+							var dt:Object = getTileData(currentTile.ID);
 
 							tileInfo.text = currentTile.name + " id:" + dt.id + " ( w: " + currentTile.upos.width + ", d: " + currentTile.upos.depth + ", h: " + currentTile.upos.height + " )";
-							tileInfo.text += " - asset ( " + dt.refId + " ) url: " + dt.assets[0];
+							tileInfo.text += " - asset ( " + dt.refId + " ) url: " + dt.assets[0];							
+							// objet caché
+							cbHiddenTile.selected = dt.hi;
+							
+							
+							
 						}
 					} else { // clique dans zone vierge
 						if (currentTile)
@@ -265,6 +276,7 @@
 							currentTile = null;
 							// effacement info
 							tileInfo.text = "";
+							cbHiddenTile.selected = false;
 						}
 					}
 					break;
@@ -332,7 +344,9 @@
 			}
 		}
 		
-		
+		/**
+		 *	@param event Event
+		 */
 		private function cbFloatTilePosHandler(event:Event = null):void
 		{
 			if (cbFloatTilePos.selected)
@@ -340,6 +354,19 @@
 				tilePosStep = 0.1;
 			} else {
 				tilePosStep = 1;
+			}
+		}
+		
+		/**
+		 * Réception option tile afficher / caché
+		 *	@param event Event
+		 */
+		private function ckTileHiddenHandler (event:Event) : void
+		{
+			if (currentTile)
+			{
+				var dt:Object = getTileData(currentTile.ID);
+				dt.hi = cbHiddenTile.selected;
 			}
 		}
 		
@@ -688,7 +715,7 @@
 			isoscene.sceneLayer.addTile(t);
 
 			// mise à jour data
-			var dt:Object = {id:tid, refId:tileData.id, pos:{x:xu, y:yu, z:zu, r:rot}};
+			var dt:Object = {id:tid, refId:tileData.id, pos:{x:xu, y:yu, z:zu, r:rot}, assets:[assetsUrl]};
 
 			if ("pnj" in tileData) dt.pnj = tileData.pnj;
 
@@ -942,12 +969,10 @@
 						<mx:NumericStepper id="nsTileYpos" stepSize="{tilePosStep}" maximum="100000" enabled="{inEditTileInScene}" change="nsTilePosHandler(event)" />
 						<mx:Label text="Z" />
 						<mx:NumericStepper id="nsTileZpos" stepSize="{tilePosStep}" minimum="-100000" maximum="100000" change="nsTilePosHandler(event)" />
-						<mx:CheckBox id="cbFloatTilePos" label="coordonées précises (pas touche)" click="cbFloatTilePosHandler(event)"/>
-						<mx:NumericStepper id="nsTileRot" stepSize="45" maximum="360" enabled="{inEditTileInScene}" change="nsTilePosHandler(event)" />						
-						<!-- <mx:Label text="R" /> -->
-						<!-- <mx:NumericStepper id="nsTileFrame" stepSize="1" maximum="{}" enabled="{inEditTileInScene}" change="nsTilePosHandler(event)" />
-						<mx:Label text="R" /> -->
-						
+						<mx:Label text="R" />
+						<mx:NumericStepper id="nsTileRot" stepSize="45" maximum="360" enabled="{inEditTileInScene}" change="nsTilePosHandler(event)" />
+						<mx:CheckBox id="cbHiddenTile" label="caché" click="ckTileHiddenHandler(event)" />
+						<mx:CheckBox id="cbFloatTilePos" label="coordonées précises" click="cbFloatTilePosHandler(event)"/>
 					</mx:HBox>
 				</mx:AddChild>
 				<mx:AddChild relativeTo="{parentApplication.optionBox}">

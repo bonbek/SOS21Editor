@@ -48,6 +48,7 @@
 		private var tClick:int = 0;
 		
 		private var _isosceneListenersEnabled:Boolean = false;
+		private var _hiddenObjects:Array = [];
 		private var _wallsVisible:Boolean = true;
 		
 		//---------------------------------------
@@ -72,7 +73,41 @@
 			isoSceneHelper.component.sceneLayer.visible = val;
 		}
 		
-		public function set wallsVisible(val:Boolean):void
+		/**
+		 * Afficher / masquer les objets
+		 * définis comme "cachés"
+		 */
+		public function set showHiddenTiles (val:Boolean) : void
+		{
+			if (!isoSceneHelper) return;
+			
+			if (val) // affichage objet cachés
+			{
+				_hiddenObjects = [];
+				for each (var t:Object in tileList)
+				{
+					if (!t.visible)
+					{
+						_hiddenObjects.push(t);
+						t.visible = true;
+					}
+				}
+				
+				if (_hiddenObjects.length == 0) _hiddenObjects = null;
+			}
+			else 	// masque objets cachés
+			{
+				if (_hiddenObjects)
+				{
+					for each (t in _hiddenObjects)
+						t.visible = false;
+
+					_hiddenObjects = null;
+				}
+			}			
+		}
+		
+		public function set wallsVisible (val:Boolean) : void
 		{
 			if (!isoSceneHelper || _wallsVisible == val) return;
 
@@ -139,7 +174,7 @@
 		private function keyBoardHandler(event:KeyboardEvent):void
 		{
 			var kc:uint = event.keyCode;
-			if (kc == 32) // onest sur la touche espace
+			if (kc == 80) // onest sur la touche espace
 			{
 				if (event.type == KeyboardEvent.KEY_DOWN)
 				{
@@ -160,12 +195,18 @@
 		private function onSceneBuildedHandler(event:Event):void
 		{
 			var dt:Object = parentApplication.datamapProxy.getData();
+			// titre de scène
 			this.title = "scene " + dt.id + " :: " + dt.title;
+			// listeners
 			isosceneListenersEnabled = _isosceneListenersEnabled;
-			if (!_wallsVisible) {
+			// option affichage murs
+			if (!_wallsVisible)
+			{
 				_wallsVisible = true;
 				wallsVisible = false;
 			}
+			// option affichage objets cachés
+			if (_hiddenObjects) showHiddenTiles = true
 		}
 		
 		private function onApplicationInitialized (event:Event):void

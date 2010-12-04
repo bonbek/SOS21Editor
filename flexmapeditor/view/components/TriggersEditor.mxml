@@ -115,6 +115,7 @@
 										{label:"mini jeu", data:101},
 										{label:"signal ressources", data:5, enabled:false},
 										{label:"action(s) temps limité", data:105, enabled:true},
+										{label:"action(s) sur objet(s)", data:106, enabled:true},
 										{label:"::dispatch event::", data:10, enabled:false},
 										{label:"::TScript::", data:104, enabled:false}]);
 										
@@ -255,6 +256,7 @@
 		// PRIVATE VARIABLES
 		//---------------------------------------
 		
+		private var _created:Boolean = false;
 		// formulaire additionnel des triggers
 		private var currentAddForm:Object;
 		// objet cible du / des triggers en cours d'édition
@@ -330,7 +332,8 @@
 		 */
 		public function hideGridTriggers():void
 		{
-			isoscene.debugLayer.removeAllTile();
+			if (isoscene)
+				isoscene.debugLayer.removeAllTile();
 			cellTriggerVisible = false;
 		}
 		
@@ -1348,6 +1351,8 @@
 		 */
 		private function onClose():void
 		{
+			if (!_created) return;
+			
 			clearForm();
 			clearAddForm();
 			
@@ -1384,7 +1389,6 @@
 		{
 			// --- stockage des réfs utiles
 			beta = parentApplication.beta;
-			beta = parentApplication.beta;
 			collisionGridProxy = parentApplication.collisionGridProxy;
 			isosceneHelper = parentApplication.isosceneHelper;
 			isoscene = parentApplication.isosceneHelper.component;
@@ -1412,6 +1416,7 @@
 			tra[103] = "bonus joueur";
 			tra[104] = "::TScript::";
 			tra[105] = "action(s) temps limité";
+			tra[106] = "action(s) d'objets";
 			
 			TriggerProperties.triggerClasses = tra;
 			
@@ -1437,20 +1442,25 @@
 			addForms[5] = new TriggerForm5();		// formulaire signaler ressources
 			addForms[6] = new TriggerForm6();		// formulaire bouger un tile
 			addForms[7] = new TriggerForm7();		// formulaire tooltip
+			addForms[7].app = parentApplication;
 //			addForms[8] = new TriggerForm8();		// formulaire player video
 			addForms[9] = new TriggerForm9();		// formulaire popup html
+			addForms[9].app = parentApplication;
 			addForms[10] = new TriggerForm10();		// formulaire dispatch event
 			addForms[101] = new TriggerForm101();	// formulaire mini jeu
 			addForms[102] = new TriggerForm102();	// formulaire player vimeo
 			addForms[103] = new TriggerForm103();	// formulaire bonus joueur
 			addForms[104] = new TriggerForm104();	// formulaire script
 			addForms[105] = new TriggerForm105();	// formulaire reach trigger
+			addForms[106] = new TriggerForm106();	// formulaire action tile
 			
 			// ?
 			cliTargetTriggers.dataProvider = [];
 			
 			tn_triggerOpts.selectedIndex = 1;
 //			tn_triggerOpts.selectedIndex = ;
+			
+			_created = true;
 			
 			//
 			onAdd();

@@ -29,7 +29,7 @@
 		// PUBLIC VARIABLES
 		//---------------------------------------
 		
-//		public var editor:HtmlEditor;
+		public var app:Object;
 		
 		// dp contenu texte du tooltip
 		[Bindable]
@@ -108,9 +108,9 @@
 		public function onDeleteTrigger(trigger:Object = null):void
 		{
 			var tr:Object = trigger ? trigger : _trigger;
-						var id:int = tr.arguments["id"];
-						if (id)
-							parentApplication.gateway.call( "sos21Services.deleteContent", new Responder(onDataDelete, onDataDelete), id);
+			var id:int = tr.arguments["id"];
+			if (id)
+				app.gateway.call( "sos21Services.deleteContent", new Responder(onDataDelete, onDataDelete), id);
 		}
 		
 		/**
@@ -195,9 +195,9 @@
 		{
 			var suc:Boolean = Boolean(res);
 			if (res)
-				trace("--@ contenu htmlpopup db::contents > id " + suc + " supprimé" );
+				trace("--@ contenu htmlpopup db::contents > id " + res + " supprimé" );
 			else
-				trace("-!! echec de la suppression contenu htmlpopup db:contents > id " + suc);
+				trace("-!! echec de la suppression contenu htmlpopup db:contents > id " + res);
 		}
 		
 		/**

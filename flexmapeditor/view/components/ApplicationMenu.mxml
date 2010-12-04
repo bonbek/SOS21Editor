@@ -4,6 +4,7 @@
 	xmlns:ns="flexmapeditor.view.components.*"
 	labelField="@label"
 	dataProvider="{menuList}"
+	focusEnabled="false"
 	creationComplete="onCreationComplete();" >
 	<!-- dataProvider="{menuList}" itemClick="menuHandler(event)" -->
 	
@@ -114,11 +115,12 @@
 							<menuitem label="propriétés de scène" data="editMapConfig" type="radio" groupName="edit" />
 	                    </menuitem>
 	                    <menuitem label="Affichage">
-							<menuitem label="afficher le fond" data="dispBackground" type="check" toggled="true" />
-	                        <menuitem label="afficher le premier plan" data="dispForeground" type="check" toggled="true" />
-							<menuitem label="afficher les tiles" data="dispTiles" type="check" toggled="true" />
-							<menuitem label="afficher la grille" data="dispGrid" type="check" toggled="false" />
-							<menuitem label="afficher les murs" data="dispWall" type="check" toggled="true" />
+							<menuitem label="calque de fond" data="dispBackground" type="check" toggled="true" />
+	                        <menuitem label="calque de premier plan" data="dispForeground" type="check" toggled="true" />
+							<menuitem label="calque des objets" data="dispTiles" type="check" toggled="true" />
+							<menuitem label="objets cachés" data="dispHiddenTiles" type="check" toggled="true" selected="true" />
+							<menuitem label="objets murs" data="dispWall" type="check" toggled="true" />
+							<menuitem label="grille" data="dispGrid" type="check" toggled="false" />
 	                    </menuitem>
 	                </>;
 
