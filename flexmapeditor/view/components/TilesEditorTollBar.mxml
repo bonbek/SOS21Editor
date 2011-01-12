@@ -7,4 +7,6 @@
 		<mx:Number id="buttonWidth">30</mx:Number>
 		<mx:Button id="btnDeleteTile" width="{buttonWidth}"
 					icon="@Embed('icons/brick_delete.png')" toolTip="Supprimer des objets de la scène" toggle="true" />
+		<mx:Button id="btnEditTile" width="{buttonWidth}"
+					icon="@Embed('icons/brick_edit.png')" toolTip="Editer l'objet" />
 </mx:VBox>

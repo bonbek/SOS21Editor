@@ -24,7 +24,8 @@
 		import mx.controls.Alert;
 		import mx.collections.ArrayCollection;
 		import mx.containers.Box;
-		
+		import mx.core.IFlexDisplayObject;
+		import mx.managers.PopUpManager;
 		import flash.geom.Point;
 		import flash.events.Event;
 		import flash.events.MouseEvent;
@@ -117,7 +118,7 @@
 *	            r: 0
 		 *	@private
 		 */
-		public function save():void
+		public function save () : void
 		{
 			var tileList:Array = datamapProxy.tileList;
 			var n:int = tileList.length;
@@ -480,6 +481,14 @@
 					} else {
 						
 					}
+					break;
+				}
+				case parentApplication.tileEditorToolBar.btnEditTile :
+				{
+					
+					PopUpManager.addPopUp(spriteEditor, this, true);
+					if (currentTile) spriteEditor.dataTile = getTileData(currentTile.ID);
+					break;
 				}
 			}
 		}
@@ -566,6 +575,8 @@
 			tlTilesList.removeEventListener("itemClick", tileLibraryHandler);
 		}
 		
+		private var spriteEditor:SpriteEditor;
+		
 		/**
 		 *	Reception première initialisation 
 		 *	@private
@@ -576,6 +587,12 @@
 			isoscene = parentApplication.isosceneHelper.component;
 			datamapProxy = parentApplication.datamapProxy;
 			objectBuilderProxy = parentApplication.objectBuilderProxy;
+			
+			spriteEditor =  new SpriteEditor();
+			spriteEditor.gateway = parentApplication.gateway;
+			spriteEditor.librarys = tileLibrary.librarys;
+			/*spriteEditor.width = 600;
+			spriteEditor.height = 400;*/
 			
 			tlTilesList.addEventListener("itemClick", tileLibraryHandler);
 //			parentApplication.gateway.call( "sos21Services.getTileCategoryList", new Responder(onCategoryResult, onFault));
@@ -724,7 +741,7 @@
 			parentApplication.datamapProxy.tileList.push(dt);
 		}
 		
-		private function updateDataTile(t:Object):void
+		private function updateDataTile (t:Object) : void
 		{
 			// on test si on est sur un groupe
 			if (t.inGroup) {
@@ -755,6 +772,20 @@
 					break;
 				}
 			}			
+		}
+		
+		public function getDataTile (tile:Object) : Object
+		{
+			var tileList:Array = datamapProxy.tileList;
+			var tid:String = tile.ID;
+			var t:Object;
+			for each (t in tileList)
+			{
+				if (t.ID == tid)
+					break;
+			}
+			
+			return t;
 		}
 		
 		private function removeTileFromScene(t:Object):void

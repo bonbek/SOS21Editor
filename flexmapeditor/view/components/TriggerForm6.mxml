@@ -136,7 +136,7 @@
 					dc = parentApplication.objectBuilderProxy.createAbstractTile(up.posToString(), up.xu, up.yu, up.zu, tv);
 					parentApplication.isosceneHelper.component.debugLayer.addTile(dc);
 				}
-//				tile.
+
 				displayedPath = path;
 				_trigger.arguments["target"] = tid;
 				return true;

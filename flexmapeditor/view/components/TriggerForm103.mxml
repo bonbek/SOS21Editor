@@ -23,27 +23,20 @@
 		[Bindable]
 		public function set trigger(t:Object):void {
 			_trigger = t;
-			if (!firstInit)
-			{
-				onCreationComplete();
-			} else {
+			if (!firstInit) onCreationComplete();
+			else
 				firstInit = false;
-			}
 		}
 		
-		public function get trigger():Object {
-			return _trigger;
-		}
+		public function get trigger():Object
+		{ return _trigger; }
 		
 		/**
 		 *	Appelé au changement du trigger à éditer
-		 * 
 		 *	@private
 		 */
 		public function safeSave() : void
-		{
-			updateOnSave();
-		}
+		{ updateOnSave(); }
 		
 		/**
 		 * Retourne la liste des Arguments "vitaux" pour ce type
@@ -51,9 +44,7 @@
 		 * @private
 		 */
 		public function getSarfeArguments() : Array
-		{
-			return ["psoc","peco","penv"];
-		}
+		{ return ["plev", "ppir", "psoc","peco","penv"]; }
 		
 		/**
 		 *	Appelé à la suppression d'un trigger
@@ -61,7 +52,7 @@
 		 *	@param	trigger	 qui va être supprimé
 		 *	@private
 		 */
-		public function onDeleteTrigger(trigger:Object = null):void
+		public function onDeleteTrigger (trigger:Object = null) : void
 		{ }
 		
 		/**
@@ -69,17 +60,31 @@
 		 *	Test et clean l'argument entryPoint
 		 *	@private
 		 */
-		public function updateOnSave():void
+		public function updateOnSave () : void
 		{
 			var args:Object = _trigger.arguments;
-			var p:int = int (ti_soc.text);
+
+			// > points piraniak
+			var p:int = int (ti_lev.text);
+			if (p) args["plev"] = p
+			else
+				delete args["plev"];
+			// > points piraniak
+			p= int (ti_pir.text);
+			if (p) args["ppir"] = p
+			else
+				delete args["ppir"];
+			// > points social
+			p = int (ti_soc.text);
 			if (p) args["psoc"] = p
 			else
 				delete args["psoc"];
+			// > points economie
 			p = int (ti_eco.text);
 			if (p) args["peco"] = p;
 			else
 				delete args["peco"];
+			// > points envionnement
 			p = int (ti_env.text);
 			if (p) args["penv"] = p;
 			else
@@ -93,12 +98,17 @@
 		 */
 		private function onCreationComplete () : void
 		{
+			ti_lev.text = "";
+			ti_pir.text = "";
 			ti_soc.text = "";
 			ti_eco.text = "";
 			ti_env.text = "";
+
 			var args:Object = _trigger.arguments;
-			/*if ("lev" in args)
-				it_lev.text = args["lev"];*/
+			if ("plev" in args)
+				ti_lev.text = args["plev"];
+			if ("ppir" in args)
+				ti_pir.text = args["ppir"];
 			if ("psoc" in args)
 				ti_soc.text = args["psoc"];
 			if ("peco" in args)
@@ -111,12 +121,20 @@
 	</mx:Script>
 	
 	<mx:Label text="bonus / malus de points: " />
-	<mx:HBox>
-		<mx:Label text="social" />
-		<mx:TextInput id="ti_soc" restrict="\-0-9" width="30"/>
-		<mx:Label text="économie" />
-		<mx:TextInput id="ti_eco" restrict="\-0-9" width="30"/>
-		<mx:Label text="environnement" />
-		<mx:TextInput id="ti_env" restrict="\-0-9" width="30"/>
+	<mx:HBox width="100%" paddingTop="10">
+		<mx:Box verticalGap="10" paddingTop="4" paddingLeft="10">
+			<mx:Label fontWeight="bold" text="Niveau		" truncateToFit="true" />
+			<mx:Label fontWeight="bold" text="Piraniak		" truncateToFit="true" />
+			<mx:Label fontWeight="bold" text="Social		" truncateToFit="true" />
+			<mx:Label fontWeight="bold" text="Economie		" truncateToFit="true" />
+			<mx:Label fontWeight="bold" text="Environnement	" truncateToFit="true" />
+		</mx:Box>
+		<mx:Box>
+			<mx:TextInput id="ti_lev" restrict="\-0-9" width="40" />
+			<mx:TextInput id="ti_pir" restrict="\-0-9" width="40" />
+			<mx:TextInput id="ti_soc" restrict="\-0-9" width="40" />
+			<mx:TextInput id="ti_eco" restrict="\-0-9" width="40" />
+			<mx:TextInput id="ti_env" restrict="\-0-9" width="40" />
+		</mx:Box>
 	</mx:HBox>
 </mx:VBox>

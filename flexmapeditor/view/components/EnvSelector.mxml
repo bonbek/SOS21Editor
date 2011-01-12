@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:fx="flexmapeditor.view.components.*"
+	xmlns:flexlib="http://code.google.com/p/flexlib/">
+
+	<!--
+	event changement du selecteur -->
+	<mx:Metadata>
+	    [Event(name="change", type="flash.events.Event")]
+  	</mx:Metadata>
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.Event;
+		import mx.events.MenuEvent;
+		import flash.geom.Point;
+		import flexlib.controls.ScrollableMenu;
+		
+		/**
+		 *	Selecteur variables environnement et autres
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2010-12-17
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var menu:ScrollableMenu;
+		private var menuPos:Point = new Point();
+		private var tmpObj:Object = {};
+		
+		// data Acteurs
+		private static var dpActor:Array =
+							[{label:"Philippe nous paie", data:0, key:"?"},
+							{label:"var joueur", data:1, key:"p.g"},
+							{label:"var scène joueur", data:2, key:"p.l"},
+							{label:"niveau joueur", data:0, key:"p.level"},							
+							{label:"points eco joueur", data:0, key:"p.eco"},
+							{label:"points soc joueur", data:0, key:"p.soc"},
+							{label:"points env joueur", data:0, key:"p.env"},
+							{label:"points pir joueur", data:0, key:"p.pir"},
+							{label:"objet possédé joueur", data:0, key:"?", enabled:"false"},							
+							{label:"position x joueur", data:0, key:"p.px ?", enabled:"false"},
+							{label:"position y joueur", data:0, key:"p.py ?", enabled:"false"},
+							{label:"var jeu", data:1, key:"g"},
+							{label:"var scène", data:2, key:"l"},
+							{label:"dernière scène visitée", data:0, key:"d ?", enabled:"false"},
+							{label:"action scène", data:0, key:"d ?", enabled:"false"},
+							{label:"date", data:0, key:"d ?", enabled:"false", enabled:"false"},
+							{label:"objet scène...", data:0, key:"o ?", enabled:"false"}];
+
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		/**
+		 * Mode d'édition
+		 * hand > édition manuelle seule
+		 * assist > édition avec selecteur menu
+		 */
+		private var _editModeChanged:Boolean = true;
+		private var _editMode:String = "assist";		
+
+		public function get editMode () : String
+		{ return _editMode; }
+		
+		public function set editMode (val:String) : void
+		{
+			if (_editMode == val) return;
+			
+			_editModeChanged = true;
+			_editMode = val;
+				
+			invalidateDisplayList();
+		}
+		
+		/**
+		 * Affiche le bouton de switch entre les modes
+		 * d'édition
+		 */
+		private var _modeSwitcherChanged:Boolean = true;
+		private var _modeSwitcher:Boolean = false;
+
+		public function get modeSwitcher () : Boolean
+		{ return _modeSwitcher; }
+		
+		public function set modeSwitcher (val:Boolean) : void
+		{
+			if (val == _modeSwitcher) return;
+			
+			_modeSwitcherChanged = true;
+			_modeSwitcher = val;
+			
+			invalidateDisplayList();
+		}
+		
+		/**
+		 * Selecteur String pour l'instant
+		 */
+		private var _selector:Object
+		public function get selector () : Object
+		{ return _selector; }
+		
+		public function set selector (val:Object) : void
+		{
+			_selector = val;
+			// 
+			label = selectorToLabel(val);
+		}
+		
+		/**
+		 * TODO la value devrait être soit :
+		 * la vrai valeur du selecteur quand on est en mode assist
+		 * la valeur du tiSelector
+		 */
+		public function get value () : *
+		{ return tiSelector.text; }
+		
+		public function set value (val:*) : void
+		{ tiSelector.text = String(val); }
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Retourne intitulé littéraire d'un selecteur
+		 *	@param key Object
+		 *	@return String
+		 */
+		public function selectorToLabel (key:Object) : String
+		{
+			if (!(key is String)) return null; 
+			var part:Array = key.split(".");
+			var label:String;
+
+			switch (part.shift())
+			{
+				// on est sur une variable joueur
+				case "p" :
+				{					
+					switch (part.shift())
+					{
+						// on est sur une variable globale
+						case "g" :
+							label = getActor("p.g").label + " " + envEditor.getGlobal(part.shift()).name;
+							break;
+						// on est sur une variable locale
+						case "l" :
+							label = getActor("p.l").label + " " + envEditor.getLocal(part.shift()).name;
+							break;
+						default :
+							label = getActor(key as String).label;
+							break;
+					}
+					break;
+				}
+				// on est sur une variable globale
+				case "g" :
+				{
+					label = getActor("g").label + " " + envEditor.getGlobal(part.shift()).name;
+					break;
+				}
+				// on est sur une variable locale
+				case "l" :
+				{
+					label = getActor("l").label + " " + envEditor.getLocal(part.shift()).name;
+					break;
+				}
+				// par defaut la valeur est la clé
+				default :
+				{
+//					value = key;
+					break;
+				}
+			}
+
+			return label;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+						
+		/**
+		 * Choix acteur dans le menu
+		 *	@param event MenuEvent
+		 */
+		private function onActorChoosed (event:MenuEvent) : void 
+		{
+			tmpObj.l = event.item.label;
+			tmpObj.s = event.item.key;
+
+			switch (event.item.data)
+			{
+				// > 
+				case 1 :
+					createMenu(envEditor.globals, "name", onPropChoosed);
+					break;
+				case 2 :
+					createMenu(envEditor.locals, "name", onPropChoosed);
+				default :
+					update();
+					break;
+			}
+		}
+		
+		/**
+		 * Choix propriété acteur dans menu
+		 *	@param event MenuEvent
+		 */
+		private function onPropChoosed (event:MenuEvent) : void
+		{
+			// affichage intitulé bt
+			tmpObj.l += " " + event.item.name;
+			tmpObj.s += "." + event.item.id;
+
+			update();
+		}
+		
+		/**
+		 *	@private
+		 * Click, changement sélecteur
+		 * affichage premier menu selection: choix acteur
+		 */
+		private function btSelectorClick () : void
+		{ createMenu(dpActor, "label", onActorChoosed); }
+		
+		/**
+		 *	@private
+		 * Bascule mode d'édtion
+		 */
+		private function onClickWand () : void
+		{
+			if (btWand.selected) editMode = "assist";
+			else
+				editMode = "hand";
+		}
+		
+		/**
+		 *	@private
+		 * Changement valeur du tiSelector
+		 */
+		private function tiSelectorChange () : void
+		{
+			dispatchEvent(new Event("change"));
+		}
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------
+		
+		/**
+		 *	@param key String
+		 *	@return String
+		 */
+		private function getActor (key:String) : Object
+		{
+			var actor:Object;
+			for each (var o:Object in dpActor)
+			{
+				if (o.key == key)
+				{
+					actor = o;
+					break;
+				}
+			}
+			
+			return actor;
+		}
+				
+		/**
+		 *	@private
+		 * Update affichage selecteur
+		 */
+		private function update () : void
+		{
+			label = tmpObj.l;
+			_selector = tmpObj.s;
+
+			dispatchEvent(new Event("change"));
+		}
+		
+		/**
+		 * Créa Menu pop de selection
+		 *	@param dp Object
+		 *	@param labelField String
+		 *	@param callback Function
+		 */
+		private function createMenu (dp:Object, labelField:String, callback:Function) : void
+		{
+			menu = ScrollableMenu.createMenu(this, dp, false);
+			
+            menu.labelField = labelField;
+			menu.verticalScrollPolicy = "auto";
+			menu.width = width;
+			menu.maxHeight = 240;
+			
+			// placement
+			menuPos.x = btSelector.x;
+			menuPos.y = btSelector.y;    
+			menuPos = localToGlobal(menuPos);
+			
+			// écoute
+			menu.addEventListener("itemClick", callback);
+			
+			menu.show(menuPos.x, menuPos.y);
+			menu.y-=  menu.measuredHeight;
+		}
+		
+		/**
+		 * @private
+		 * ref EnvEditor
+		 */
+		private function get envEditor () : Object
+		{ return parentApplication.envEditor; }
+		
+		/**
+		 * @inheritDoc
+		 */
+		override protected  function updateDisplayList (unscaledWidth:Number, unscaledHeight:Number) : void
+		{
+			if (_modeSwitcherChanged)
+			{
+				_modeSwitcherChanged = false;
+				if (_modeSwitcher) addChild(btWand);
+				else
+					removeChild(btWand);
+			}
+			
+			if (_editModeChanged)
+			{
+				_editModeChanged = false;
+				switch (_editMode)
+				{
+					case "hand" :
+					{
+						currentState = "handEdit";
+						btWand.selected = false;
+						break;
+					}
+					case "assist" :
+					{
+						currentState = null;
+						btWand.selected = true;
+						break;
+					}
+				}
+			}
+						
+			super.updateDisplayList(unscaledWidth, unscaledHeight);			
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<!-- 
+		Edition valeur à la mano -->
+		<mx:State name="handEdit">
+			<mx:RemoveChild target="{btSelector}" />
+			<mx:AddChild position="firstChild">
+				<mx:TextInput id="tiSelector" width="100%" fontWeight="bold"
+					change="tiSelectorChange()" />
+			</mx:AddChild>
+		</mx:State>
+	</mx:states>
+	
+	<mx:Button id="btSelector" width="100%"
+		label="{label}"
+		textAlign="center"
+		cornerRadius="10"
+		fillAlphas="[1, 1]"
+		fillColors="[0xFFFFFF, 0xFFFFFF]"
+		click="btSelectorClick()"
+		toolTip="Mode assisté / saisie valeur" />
+	
+	<mx:Button id="btWand" toggle="true" selected="true" icon="@Embed('icons/wand.png')" width="24" change="onClickWand()" />
+	
+</mx:HBox>

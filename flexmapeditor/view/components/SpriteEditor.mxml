@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" title="Edition d'objet"
+	showCloseButton="true" close="PopUpManager.removePopUp(this);"
+	width="780" height="440"
+	addedToStage="onAdd();"
+	remove="onRemve();"
+	creationComplete="onCreationComplete(event);">
+	
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+
+		import mx.events.CloseEvent;
+		import mx.events.FlexEvent;
+		import mx.managers.PopUpManager;
+		import mx.collections.ArrayCollection;
+		import mx.controls.SWFLoader;
+		import flash.events.Event;
+		import flash.events.MouseEvent;
+		import flash.events.KeyboardEvent;
+		import flash.display.Shape;
+		import mx.core.UIComponent;
+		import flash.utils.*;
+		
+		/**
+		*	Description
+		*
+		*	@langversion ActionScript 3.0
+		*	@playerversion Flash 9.0
+		*
+		*	@author Christopher Corbin
+		*	@since  2011-01-10
+		*/
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		// offset de click
+		private var ofsClickX:int;
+		private var ofsClickY:int;
+		// data tile
+		private var _dtTile:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+
+		[Bindable]
+		public var librarys:ArrayCollection;
+				
+		public var gateway:Object;
+		public var assetsPath:String = "tiles60x30/";
+		public var cellSize:int = 30;
+		public var currentLib:int;
+		
+		[Bindable]
+		public var categoryList:Array;
+		
+		/**
+		 * 
+		 */
+		public function set dataTile (val:Object) : void
+		{
+			if (_dtTile == val ) return;
+			
+			/*loader = new SWFLoader();
+			viewport.addChild(loader);			*/
+			
+			_dtTile = val;
+			
+			// offsets
+			loader.x = int(_dtTile.ofsX);
+			loader.y = _dtTile.ofsY;
+			loader.source = assetsPath + val.assets;
+			
+			// maj infos
+			lbId.text = _dtTile.refId;
+			tiTitle.text = _dtTile.title;
+			tiAssetUrl.text = _dtTile.assets;
+			tiWidth.text = _dtTile.width;
+			tiDepth.text = _dtTile.depth;
+			tiHeight.text = _dtTile.height;
+			var catid:int = _dtTile.catid;
+			for each (var c:Object in librarys) {
+				if (c.id == catid) {
+					cbLibrary.selectedItem = c;
+					break;
+				}
+			}
+			
+			// maj reglettes
+			dimWidth.x = _dtTile.width * cellSize;
+			dimWidth.y = (_dtTile.width * cellSize) / 2;
+			dimDepth.x = -(_dtTile.depth * cellSize);
+			dimDepth.y = (_dtTile.depth * cellSize) / 2;
+			dimHeight.y = -(_dtTile.height * cellSize);
+		}
+		
+		/**
+		 * Manipulation du sprite tile, placement.
+		 *	@param event Event
+		 */
+		private function handleMouseLoader (event:Event) : void
+		{
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					ofsClickX = viewport.mouseX - loader.x;
+					ofsClickY = viewport.mouseY - loader.y;
+					stage.addEventListener(MouseEvent.MOUSE_UP, handleMouseLoader);
+					stage.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseLoader);
+					break;
+				case MouseEvent.MOUSE_MOVE :
+					loader.x = viewport.mouseX - ofsClickX;
+					loader.y = viewport.mouseY - ofsClickY;
+					break;
+				case MouseEvent.MOUSE_UP :
+					stage.removeEventListener(MouseEvent.MOUSE_UP, handleMouseLoader);
+					stage.removeEventListener(MouseEvent.MOUSE_MOVE, handleMouseLoader);
+					break;
+			}
+		}
+		
+		/**
+		 * Manipulation des marqueurs réglage taille du sprite
+		 *	@param event Event
+		 */
+		private var currentMarker:Object;
+		private function handleMouseMarker (event:MouseEvent) : void
+		{
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					// recup du marker qui va être manipulé
+					currentMarker = event.target;
+					ofsClickX = viewport.mouseX - currentMarker.x;
+					ofsClickY = viewport.mouseY - currentMarker.y;
+					stage.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseMarker);
+					stage.addEventListener(MouseEvent.MOUSE_UP, handleMouseMarker);
+					break;
+				case MouseEvent.MOUSE_UP :
+					// TODO recup nouvelle taille et maj
+					stage.removeEventListener(MouseEvent.MOUSE_MOVE, handleMouseMarker);
+					stage.removeEventListener(MouseEvent.MOUSE_UP, handleMouseMarker);
+					currentMarker = null;
+					break;
+				case MouseEvent.MOUSE_MOVE :
+					var mox:int = viewport.mouseX - ofsClickX;
+					var moy:int = viewport.mouseY - ofsClickY;
+					var n:Number;
+					switch (currentMarker)
+					{
+						case dimWidth :
+							n = int(mox / cellSize * 10) / 10;
+							dimWidth.x = n * cellSize;
+							dimWidth.y = n * cellSize / 2;
+							tiWidth.text = String(n);
+							break;
+						case dimDepth :
+							n = int(mox / cellSize * 10) / 10;
+							dimDepth.x = n * cellSize;
+							dimDepth.y = -n * cellSize / 2;
+							tiDepth.text = String(-n);
+							break;
+						case dimHeight :
+							n = int(moy / cellSize * 10) / 10;
+							dimHeight.y = n * cellSize;
+							tiHeight.text = String(-n);
+							break;
+					}
+					break;
+			}
+		}
+		
+		/**
+		 * Changement dimension depuis saisie manuelle
+		 *	@param event Event
+		 */
+		private function dimChange (event:Event) : void
+		{
+			var nv:Number = Number(event.target.text);
+			switch (event.target)
+			{
+				case tiWidth :
+					dimWidth.x = nv * cellSize;
+					dimWidth.y = nv * cellSize / 2;
+					break;
+				case tiDepth :
+					dimDepth.x = -nv * cellSize;
+					dimDepth.y = nv * cellSize / 2;
+					break;
+				case tiHeight :
+					dimHeight.y = -nv * cellSize;
+					break;							
+			}
+		}
+		
+		/**
+		 * Déplacement de la vue
+		 *	@param event MouseEvent
+		 */
+		private var tClick:int;
+		private function handleMousePan (event:MouseEvent) : void
+		{
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					var t:int = getTimer();
+					if (t - tClick < 600) {
+						viewport.x = viewContainer.width / 2;
+						viewport.y = viewContainer.height / 2;
+					}
+					else {
+						viewport.startDrag();
+					}
+					tClick = t;
+					break;
+				case MouseEvent.MOUSE_UP :
+					viewport.stopDrag();
+					break;
+			}
+		}
+		
+		/**
+		 * Gestion touches, p pour pan view
+		 *	@param event KeyboardEvent
+		 */
+		private function keyBoardHandler (event:KeyboardEvent) : void
+		{
+			var kc:uint = event.keyCode;
+
+			if (kc == 80) // onest sur la touche p
+			{
+				if (event.type == KeyboardEvent.KEY_DOWN)
+				{
+					stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false);
+					stage.addEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false, 0, true);
+					stage.addEventListener(MouseEvent.MOUSE_DOWN, handleMousePan, true, 500, true);
+					stage.addEventListener(MouseEvent.MOUSE_UP, handleMousePan, true, 500, true);
+				}
+				else
+				{
+					stage.removeEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false);
+					stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+					stage.removeEventListener(MouseEvent.MOUSE_DOWN, handleMousePan, true);
+					stage.removeEventListener(MouseEvent.MOUSE_UP, handleMousePan, true);
+					viewport.stopDrag();
+				}
+			}
+		}		
+		
+		private function saveCurrent () : void
+		{
+			enabled = false;
+			
+			var ut:Object = {};
+			ut.id = _dtTile.refId;
+			ut.catid = cbLibrary.selectedItem.id;
+			ut.title = tiTitle.text;
+			ut.assets = tiAssetUrl.text;
+			ut.ofsX = loader.x;
+			ut.ofsY = loader.y;
+			ut.width = tiWidth.text;
+			ut.depth = tiDepth.text;
+			ut.height = tiHeight.text;
+			trace(_dtTile.refId);
+			gateway.call("sos21Services.Tiles", new Responder(onSaveCurrent, onFault), "update", ut);
+		}
+		
+		private function onSaveCurrent (result:Object) : void
+		{
+			enabled = true;
+			dataTile = result;
+		}
+		
+		/**
+		 * Crée un nouveau Tile
+		 *	@private
+		 */
+		private function newTile () : void
+		{
+			enabled = false;
+
+			var nt:Object = {};
+			
+			nt.catid = cbLibrary.selectedItem.id;
+			nt.title = tiTitle.text;
+			nt.assets = tiAssetUrl.text;
+			nt.ofsX = loader.x;
+			nt.ofsY = loader.y;
+			nt.width = tiWidth.text;
+			nt.depth = tiDepth.text;
+			nt.height = tiHeight.text;
+			
+			gateway.call("sos21Services.Tiles", new Responder(onNewTile, onFault), "new", nt);
+			
+		}
+		
+		// TODO
+		private function onNewTile (result:Object) : void
+		{
+			enabled = true;
+			_dtTile = result;
+		}
+		
+		private function onFault () : void
+		{ }
+		
+		/**
+		 * Ecoute clavier
+		 *	@private
+		 */
+		private function onAdd () : void
+		{
+			if (stage)
+				stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+		}
+		
+		/**
+		 * Nettoyage ecoute clavier
+		 *	@private
+		 */
+		private function onRemve () : void
+		{
+			stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false);
+		}
+		
+		/**
+		*	Event handler for Creation Complete event.
+		*	@see mx.events.FlexEvent
+		*/
+		private function onCreationComplete (event:FlexEvent) : void
+		{
+			viewport.graphics.lineStyle(1, 0x777777);
+			var ncell:int = 20;
+			var wc:int = ncell * 30;
+			var hc:int = wc / 2;
+			var ofx:int;
+			var ofy:int;
+			for (var i:int = 0; i <= ncell; i++)
+			{
+				ofx = i * 30;
+				ofy = i * 15;
+				viewport.graphics.moveTo(-ofx, ofy);
+				viewport.graphics.lineTo(wc - ofx, hc + ofy);
+				viewport.graphics.moveTo(ofx, ofy);
+				viewport.graphics.lineTo(ofx - wc, hc + ofy);
+			}
+			
+//			var mask:Shape = new Shape();
+			viewportBackGround.graphics.beginFill(0x000000);
+			viewportBackGround.graphics.drawRect(0, 0, viewContainer.width, viewContainer.height);
+			viewportBackGround.graphics.endFill();
+			viewport.mask = viewportBackGround;
+			
+			// marqueurs
+			// > largeur
+			dimWidth.graphics.beginFill(0x0000FF, .5);
+			dimWidth.graphics.drawCircle(20, -20, 10);
+			dimWidth.graphics.endFill();
+			dimWidth.graphics.moveTo(0, 0);			
+			dimWidth.graphics.lineStyle(1, 0x0000FF, .7);
+			dimWidth.graphics.lineTo(-wc, wc / 2);
+
+			// > profondeur
+			dimDepth.graphics.beginFill(0x00FF00, .5);
+			dimDepth.graphics.drawCircle(-20, -20, 10);
+			dimDepth.graphics.endFill();
+			dimDepth.graphics.moveTo(0,0);
+			dimDepth.graphics.lineStyle(1, 0x00FF00, .7);
+			dimDepth.graphics.lineTo(wc, wc / 2);
+			
+			// > hauteur
+			dimHeight.graphics.beginFill(0xFF0000, .5);
+			dimHeight.graphics.drawCircle(0, -20, 10);
+			dimHeight.graphics.endFill();
+			dimHeight.graphics.moveTo(0,0);
+			dimHeight.graphics.lineStyle(1, 0xFF0000, .7);
+			dimHeight.graphics.lineTo(wc, wc / 2);
+			dimHeight.graphics.moveTo(0, 0);
+			dimHeight.graphics.lineTo(-wc, wc / 2);	
+			
+			onAdd();
+		}
+				
+	    ]]>
+	</mx:Script>
+	<mx:Canvas id="viewContainer" width="100%" height="100%" clipContent="true"
+		verticalScrollPolicy="off" horizontalScrollPolicy="off">
+		<mx:Canvas id="viewportBackGround"
+			verticalScrollPolicy="off" horizontalScrollPolicy="off"/>
+		<mx:Canvas id="viewport" clipContent="false"
+			verticalScrollPolicy="off" horizontalScrollPolicy="off"
+			x="{viewContainer.width / 2}" y="{viewContainer.height / 2}">
+			<mx:SWFLoader id="loader"
+				mouseDown="handleMouseLoader(event)" />
+			<mx:Canvas id="dimHeight"
+				mouseDown="handleMouseMarker(event)" />
+			<mx:Canvas id="dimWidth"
+				mouseDown="handleMouseMarker(event)" />
+			<mx:Canvas id="dimDepth"
+				mouseDown="handleMouseMarker(event)" />
+		</mx:Canvas>
+	</mx:Canvas>
+	<mx:HBox width="100%">
+		<mx:Button width="30" icon="@Embed('icons/add.png')"
+			click="newTile();" toolTip="nouveau" />
+		<mx:Spacer width="40" />
+		<mx:Label id="lbId" />
+		<mx:TextInput id="tiTitle" width="30%" />
+		<mx:TextInput id="tiAssetUrl" width="70%" />
+		<mx:Button id="btReloadAssset" width="30" icon="@Embed('icons/arrow_refresh.png')"
+			click="{loader.source=assetsPath+tiAssetUrl.text}" />
+	</mx:HBox>
+	<mx:HBox width="100%" horizontalAlign="right">
+		<mx:ComboBox id="cbLibrary" dataProvider="{librarys}" labelField="title"  rowCount="20" />
+		<mx:Label text="width" />
+		<mx:TextInput id="tiWidth" width="40"
+			change="dimChange(event)" />
+		<mx:Label text="depth" />
+		<mx:TextInput id="tiDepth" width="40"
+			change="dimChange(event)" />
+		<mx:Label text="height" />
+		<mx:TextInput id="tiHeight" width="40"
+			change="dimChange(event)" />
+		<mx:Button id="btSave" width="30" icon="@Embed('icons/disk.png')"
+			click="saveCurrent();" />		
+	</mx:HBox>
+</mx:TitleWindow>

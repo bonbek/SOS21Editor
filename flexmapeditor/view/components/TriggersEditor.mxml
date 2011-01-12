@@ -116,6 +116,7 @@
 										{label:"signal ressources", data:5, enabled:false},
 										{label:"action(s) temps limité", data:105, enabled:true},
 										{label:"action(s) sur objet(s)", data:106, enabled:true},
+										{label:"modifier variable(s)", data:107, enabled:true},
 										{label:"::dispatch event::", data:10, enabled:false},
 										{label:"::TScript::", data:104, enabled:false}]);
 										
@@ -150,6 +151,7 @@
 										{label:"entrée céllule", data:4, enabled:false},
 										{label:"sortie céllule", data:3, enabled:false},
 										{label:"en début de scène", data:8, enabled:true},
+										{label:"continuel", data:9, enabled:true},
 										{label:"chaîné à une action", data:-1, enabled:false}]);
 										
 		public var dtTriggerFireTypesForChain:ArrayCollection = new ArrayCollection([
@@ -162,35 +164,57 @@
 										{label:"entrée céllule", data:4, enabled:false},
 										{label:"sortie céllule", data:3, enabled:false},
 										{label:"en début de scène", data:8, enabled:true},
+										{label:"continuel", data:9, enabled:true},
 										{label:"chaîné à une action", data:-1, enabled:true}]);
 		
+		private var _editedLevel:int = 0;
+		[Bindable]
+		public function get editedLevel () : int
+		{ return _editedLevel; }
 
-		/*<mx:DataGridColumn dataField="id" headerText="id" />
-           <mx:DataGridColumn dataField="title" headerText="action" />
-           <mx:DataGridColumn dataField="source" headerText="source" />
-		<mx:DataGridColumn dataField="chained" headerText="chainage" />*/
-
-		/*public function buildTriggerList():void
+		public function set editedLevel (val:int) : void
 		{
-			dpAllTriggers.removeAll()
-			var all:Array = triggersProxy.allTriggersInMap;
-			var tr:Object;
-			var n:int = all.length;
-			for (var i:int = 0; i < n; i++) {
-				tr = all[i];
-				dpAllTriggers.addItem({ id:tr.id, title:triggersClass[tr.triggerClassId], source:getSourceDescription(tr), trigger:tr })
+			if (_editedLevel == val) return;
+
+			_editedLevel = val;
+			updateTriggersList();
+			clearForm();
+			updateForm(currentTarget);		
+		}
+		
+		
+		public var _editedDomain:int = 1;
+		[Bindable]
+		public function get editedDomain () : int
+		{ return _editedDomain; }
+
+		public function set editedDomain (val:int) : void
+		{ 
+			if (_editedDomain == val) return;
+
+			_editedDomain = val;
+			if (val == 0 && currentTarget)
+			{
+				currentTarget = null;
 			}
-		}*/
+			else
+			{
+				clearForm();
+				updateForm(currentTarget);
+			}
+			updateTriggersList();
+		}
 		
 		/**
 		 *	Retourne un trigger de la scène actuelle
 		 *	@return 
 		 */
 		public function getTrigger (id:String) : Object
-		{
-			return triggersProxy.getTrigger(id);
-		}
+		{ return triggersProxy.getTrigger(id); }
 		
+		/**
+		 *	Mise à jour de la liste des triggers
+		 */
 		public function updateTriggersList () : void
 		{
 			dpAllTriggers.removeAll()
@@ -199,8 +223,11 @@
 			var schained:String;
 			var schainedTo:String;
 			var n:int = all.length;
-			for (var i:int = 0; i < n; i++) {
+			for (var i:int = 0; i < n; i++)
+			{
 				tr = all[i];
+				if (!validForEdit(tr)) continue;
+
 				schained = tr.hasChainedTrigger ? tr.arguments["onComplete"].join(",") : "";
 				schainedTo = tr.isChained ? tr.chainedTo.join(",") : "";
 				/*dpAllTriggers.addItem({ id:tr.id, title:triggersClass[tr.triggerClassId],
@@ -208,12 +235,12 @@
 										chained:schained, chainedTo:schainedTo, data:tr });*/
 				dpAllTriggers.addItem({ id:tr.id, label:tr.title ? tr.title : "", title:triggersClass[tr.triggerClassId],
 										source:getSourceDescription(tr), firetype:tr.fireEventType,
-										chained:schained, chainedTo:schainedTo, data:tr });			
+										chained:schained, chainedTo:schainedTo, data:tr });		
 			}
 		}
 		
 		
-		public function refreshTriggerList(toRefresh:Array = null):void
+		public function refreshTriggerList (toRefresh:Array = null) : void
 		{
 			if (!toRefresh) toRefresh = triggersProxy.allTriggersInMap;
 			
@@ -260,7 +287,7 @@
 		// formulaire additionnel des triggers
 		private var currentAddForm:Object;
 		// objet cible du / des triggers en cours d'édition
-		private var currentTarget:Object;
+//		private var currentTarget:Object;
 		// liste des id classe de triggers
 		private var _triggersClass:Array = [];
 		// liste des formulaire additionnels
@@ -270,26 +297,60 @@
 		private var cellTriggerVisible:Boolean = false;
 		private var editFromNotFromMPopup:PopupList;
 		
+		private var fxHasTrigger:GlowFilter = new GlowFilter(0xFF9900);
+		private var fxSelected:GlowFilter = new GlowFilter();
+		
 		//---------------------------------------
 		// GETTER / SETTERS
 		//---------------------------------------
 		
-		/*public function get currentTrigger () : Object
+		private var _currentTarget:Object;		
+		[Bindable]
+		private function get currentTarget () : Object
+		{ return _currentTarget; }
+
+		private function set currentTarget (tile:Object) : void
 		{
-			return cliTargetTriggers.selectedItem ? cliTargetTriggers.selectedItem.data : null;
-		}*/
+			if (tile == _currentTarget) return;
+
+			if (_currentTarget)
+			{
+				if (triggersProxy.hasTrigger(_currentTarget)) _currentTarget.filters = [fxHasTrigger];
+				else
+					_currentTarget.filters = [];
+			}
+			
+			if (tile)
+			{
+				if ("ID" in tile)
+				{
+
+					if (tile.inGroup)
+					{
+						tile = tile.inGroup.owner;
+						if (tile == _currentTarget) return;
+					}
+
+					updateForm(tile);
+					tile.filters = [fxSelected];
+					_currentTarget = tile;
+					return;
+				}				
+			}
+
+			clearForm();
+			_currentTarget = null;
+		}
 		
 		private var _currentTrigger:Object;
 		[Bindable]
 		public function set currentTrigger (val:Object) : void
 		{
 			_currentTrigger = val;
-			comAddForm.trigger = _currentTrigger;
+			if (currentTrigger) onTabChange();
 		}
-		public function get currentTrigger () : Object {
-			return _currentTrigger;
-		}
-//		public var currentTrigger:Object;
+		public function get currentTrigger () : Object
+		{ return _currentTrigger; }
 		
 		//---------------------------------------
 		// PUBLIC METHODS
@@ -341,7 +402,7 @@
 		 * Lance la crétion de triggers sur grille	
 		 *  
 		 */
-		public function createCellsTrigger():void
+		public function createCellsTrigger () : void
 		{
 			viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
 			cellTemplate = addCellTrigger(0, 0, 0);
@@ -466,18 +527,31 @@
 		
 		/**
 		 * Retourne le prochain identifiant de trigger valide
-		 * 
 		 *	@return int
 		 */
-		public function findNextAvailableTriggerId():int
+		public function findNextAvailableTriggerId () : int
 		{
 			var li:Array = triggersProxy.allTriggersInMap;
 			var n:int = li.length;
 			var i:int = 0;
-			while (--n > -1 )
-				if (li[n].id > i) i = li[n].id;
+			var t:Object;
 
-			return i + 1;
+			// edition des triggers globaux
+			if (editedDomain == 0)
+			{
+				for each (t in li)
+					if (t.id < i) i = t.id;
+				i--;
+			}
+			// édition des triggers de scène
+			else
+			{
+				for each (t in li)
+					if (t.id > i) i = t.id;
+				i++;
+			}
+
+			return i;
 		}
 		
 		/**
@@ -551,12 +625,13 @@
 		 * Lance la sauvegarde
 		 * 
 		 */
-		public function save():void
+		public function save() : void
 		{
 			if (currentAddForm)
 				currentAddForm.updateOnSave();
 			
-			comAddForm.updateOnSave();
+//			comAddForm.updateOnSave();
+//			comCondForm.updateOnSave();
 
 			var alTriggers:Array = triggersProxy.allTriggersInMap;
 			var n:int = alTriggers.length;
@@ -568,6 +643,10 @@
 			while (--n > -1)
 			{
 				t = alTriggers[n];
+				
+				if (editedDomain == 0 && t.id > 0) continue;
+				if (editedDomain == 1 && t.id < 0) continue;
+				
 				// on clean le trigger
 				cleanTriggerV2(t);
 				
@@ -586,6 +665,12 @@
 				
 				if (t.disable != 0)
 					nt.dis = t.disable;
+				
+				if (t.cond)
+					nt.cond = t.cond;
+				
+				if (t.level != 0)
+					nt.lev = t.level;
 					
 				args = t.arguments;
 				nt.arguments = {};
@@ -604,7 +689,9 @@
 				pa.push(nt);
 			}
 			
-			parentApplication.gateway.call("sos21Services.updateDataMap", new Responder(onSaveResult, onFault), dataMapProxy.getData().id, "triggers", pa);
+			parentApplication.gateway.call("sos21Services.updateDataMap",
+											new Responder(onSaveResult, onFault),
+											editedDomain == 1 ? dataMapProxy.getData().id : 0, "triggers", pa);
 		}
 		
 		/**
@@ -782,62 +869,6 @@
 			}
 		}
 		
-		/*private function moveCellHandler (e:Event) : void
-		{
-			var tile:Object = e.target;
-			if (!("ID" in tile)) return;
-			trace(tile);
-			// patch pour bouger une céllule action
-			switch (e.type)
-			{
-				case MouseEvent.MOUSE_DOWN :
-				{
-					// on est sur une céllule
-					if (tile.ID.split("-").length == 3)
-					{
-						e.preventDefault();
-						trace(this, "click cell", tile);
-						viewport.addEventListener(MouseEvent.MOUSE_UP, moveCellHandler, false, 500);
-						tile.startDrag();
-						cellTemplate = tile;
-					}
-					break;
-				}
-				case MouseEvent.MOUSE_MOVE :
-				{
-
-					break;
-				}
-				case MouseEvent.MOUSE_UP :
-				{
-					e.preventDefault();
-					var p:Point = isoscene.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
-					var up:Object = beta.createUPoint(p.x, p.y, 0);
-					var nn:String = up.xu + "-" + up.yu + "-" + up.zu;
-					var t:Object = parentApplication.isosceneHelper.getTile(nn);
-					cellTemplate.stopDrag();
-					// un cellule existe déjà
-					if (!t)
-					{
-//						var cn:String = cellTemplate.ID;
-						// réatribution de la cible pour les actions ciblant la céllule
-						var tl:Array = triggersProxy.getAllTriggers(cellTemplate.ID);
-						cellTemplate.umove(up);
-						cellTemplate._setID(nn);
-						swapTriggerSource(tl, cellTemplate);
-						trace(triggersProxy.getAllTriggers(cellTemplate.ID));
-						trace(cellTemplate);
-						currentTarget = null
-//						updateForm(cellTemplate);
-						cellTemplate = null;
-					}
-
-					viewport.removeEventListener(MouseEvent.MOUSE_UP, moveCellHandler, false);
-					break;
-				}
-			}
-		}*/
-		
 		/**
 		 *  Réception events souris sur la scène
 		 *  Sélection du tile ou cellule, mise à jour du formulaire
@@ -847,11 +878,11 @@
 		private function sceneMouseHandler (event:MouseEvent) : void
 		{
 			if (event.isDefaultPrevented()) return;
-			
-			/*trace(this, "sceneMouseHandler", event.type, currentTarget);*/
-			
+
 			// on test si l'objet cliqué est le courant
-			var tile:Object = event.target;
+			currentTarget = event.target;
+			
+			/*var tile:Object = event.target;
 			
 			if (tile == currentTarget) return;
 
@@ -865,10 +896,6 @@
 
 			if ("ID" in tile)
 			{
-
-				// test Visualizer
-//				triggersVisualizer.x = stage.mouseX - (triggersVisualizer.width / 2);
-//				triggersVisualizer.y = stage.mouseY - (triggersVisualizer.height / 2);
 				
 				if (tile.inGroup)
 				{
@@ -884,7 +911,7 @@
 			{
 				clearForm();
 				currentTarget = null;
-			}
+			}*/
 		}
 		
 		/**
@@ -1417,6 +1444,7 @@
 			tra[104] = "::TScript::";
 			tra[105] = "action(s) temps limité";
 			tra[106] = "action(s) d'objets";
+			tra[107] = "modifier variable(s)";
 			
 			TriggerProperties.triggerClasses = tra;
 			
@@ -1453,6 +1481,7 @@
 			addForms[104] = new TriggerForm104();	// formulaire script
 			addForms[105] = new TriggerForm105();	// formulaire reach trigger
 			addForms[106] = new TriggerForm106();	// formulaire action tile
+			addForms[107] = new TriggerForm107();	// formulaire modifier variable
 			
 			// ?
 			cliTargetTriggers.dataProvider = [];
@@ -1474,6 +1503,18 @@
 		//---------------------------------------
 		// PRIVATE & PROTECTED METHODS
 		//---------------------------------------
+		
+		/**
+		 * Flag indiquant si le trigger est dans le domaine / niveau
+		 * d'édition adéquate
+		 *	@param tr Object
+		 *	@return Boolean
+		 */
+		private function validForEdit (tr:Object) : Boolean
+		{			
+			return	((editedDomain == 1 && tr.id > 0) || (editedDomain == 0 && tr.id < 0))
+					&& (editedLevel == 0 || editedLevel == tr.level);
+		}
 		
 		/**
 		 *	Ajoute un tile "cellule trigger" 
@@ -1636,7 +1677,8 @@
 				// si pas de source, on fait la mise à jour en fonction de l'entrée
 				// selectionnée dans la liste (si selection il y à)
 				var selIt:Object = cliTargetTriggers.selectedItem
-				if (selIt) {
+				if (selIt)
+				{
 					updateForm(selIt.data, true, true);
 					return;
 				}
@@ -1649,12 +1691,13 @@
 			{
 				var tid:String = source.ID;
 				if (triggersProxy.hasTrigger(source))
-				{					
+				{
 					trigger = triggersProxy.getAllTriggers(tid)[0];
 					displayBrothers = true;
 					autoSelect = true;
-					// mise à jour du titre
-				} else {
+				}
+				else
+				{
 					// remise à "0" des combos et listes
 					cliTargetTriggers.dataProvider.removeAll();
 					cliChainedTriggers.dataProvider.removeAll();
@@ -1669,17 +1712,15 @@
 			else // > on est sur un trigger
 			{
 				trigger = source;
+				if (!validForEdit(trigger)) return;
 			}
 			
 			// on test si le trigger existe
-			if (!trigger) {
+			if (!trigger)
+			{
 				currentTrigger = null;
 				return;
 			}
-			
-			// mise à jour affichage actif / inactif depuis scene
-			/*lbFromM.enabled = trigger.activeFromMaps ? true : false;
-			lbNotFM.enabled = trigger.inactiveFromMaps ? true : false;*/
 			
 			// on test si la source est un trigger selectionné dans la liste
 			if (cliTargetTriggers.selectedItem)
@@ -1696,19 +1737,21 @@
 							// > texte pour trigger sur céllule
 							clbCurrentTarget.text = "céllule " + refId;
 							dtTriggerFireTypes = dtTriggerFireTypesForCells;
-						} else {
+						}
+						else 
+						{
 							// > texte pour trigger sur tile
-//							clbCurrentTarget.text = "actions du tile " + refId + refObj.name;
 							clbCurrentTarget.text =  refObj.name + " (id:" + refId + ")";
 							dtTriggerFireTypes = dtTriggerFireTypesForTiles;
 						}
-					} else {
+					}
+					else
+					{
 						// > texte pour trigger chaîné
 						clbCurrentTarget.text = clbCurrentTarget.text = "action(s) chainée(s)";
 						dtTriggerFireTypes = dtTriggerFireTypesForChain;
 					}
-				
-//					clbCurrentTarget.text+= " - action id: " + trigger.id + " -";
+
 					clbCurrentTrigger.text = "action id: " + trigger.id;
 					
 					// -- mise à jour du combo type de déclenchement
@@ -1756,6 +1799,7 @@
 						for (var i:int = 0; i < n; i++)
 						{
 							tc = tpcList[i];
+							if (!validForEdit(tc)) continue;
 							tit = triggersClass[tc.triggerClassId];
 							if (tc.hasChainedTrigger) tit+= " >";
 							cliChainedTriggers.dataProvider.addItem({ title:tit, data:tc });
@@ -1787,26 +1831,27 @@
 			// index pour l'autoselection
 			var sind:int = 0;
 			
-			// il faut afficher les tous triggers qui sont associés à la même
-			// source qui celui-ci
+			// il faut afficher tous triggers qui sont associés à la même
+			// source que celui-ci
 			if (displayBrothers)
 			{
 				// on retrouve les triggers qui sont associès a la même source (celui-ci inclu)
 				var brotherList:Array;
 				// on mets à jour la List des triggers
 				var tp:Object;
-				/*if (trigger.refId != -1)
-				{*/
-					brotherList = triggersProxy.getAllTriggers(trigger.refId);
-					n = brotherList.length;
-					for (i = 0; i < n; i++)
-					{
-						tp = brotherList[i];
-						cliTargetTriggers.dataProvider.addItem({ title:triggersClass[tp.triggerClassId], data:tp })
-						if (tp == trigger)
-							sind = i;
-					}
-			} else {				
+				brotherList = triggersProxy.getAllTriggers(trigger.refId);
+				n = brotherList.length;
+				for (i = 0; i < n; i++)
+				{
+					tp = brotherList[i];
+					if (!validForEdit(tp)) continue;
+					cliTargetTriggers.dataProvider.addItem({ title:triggersClass[tp.triggerClassId], data:tp })
+					if (tp == trigger)
+						sind = i;
+				}
+			}
+			else
+			{
 				// intitulé de la classe de trigger
 				tit = triggersClass[trigger.triggerClassId];
 				// test si le trigger est châiné ) un autre
@@ -1908,6 +1953,23 @@
 			// upadte formulaire options communes
 			/*dpOverrideTriggers.removeAll();*/
 		}
+		
+		private function onTabChange () : void
+		{
+			switch (tn_triggerOpts.selectedIndex)
+			{
+				// options génériques
+				case 1 :
+					comAddForm.trigger = currentTrigger;
+					break;
+				// conditions
+				case 2 :
+					comCondForm.trigger = currentTrigger;
+					break;
+			}
+		}
+		
+		
 //public var dgAllTriggersList:Object = {};		
 	    ]]>
 	</mx:Script>
@@ -1920,7 +1982,7 @@
 		<mx:State name="onAdd">
 			<mx:AddChild relativeTo="{parentApplication.optionBox}">
 				<mx:HBox id="testm" width="100%">
-					<mx:DataGrid id="dgAllTriggersList" width="100%" editable="true"
+					<mx:DataGrid id="dgAllTriggersList" width="100%" editable="true" 
 									dataProvider="{dpAllTriggers}" dragEnabled="true" itemEditEnd="onEditTrigger(event);">
 				        <mx:columns>
 							<mx:DataGridColumn width="40" dataField="id" headerText="id" editable="false" />
@@ -1943,8 +2005,17 @@
 			<mx:SetProperty target="{dgAllTriggersList}" name="height" value="{parentApplication.optionBox.height}" />
 		</mx:State>
 	</mx:states>
-	
-	<mx:Label width="70%" text="selectionez une cible dans la scène" id="clbCurrentTarget" />
+	<mx:HBox width="100%">
+		<mx:Label width="52%" text="selectionez une cible" id="clbCurrentTarget" truncateToFit="true" />
+		<mx:ComboBox id="cbEditedDomain" selectedIndex="{editedDomain}" change="{editedDomain=cbEditedDomain.selectedIndex}">
+			<mx:dataProvider>
+				<mx:Object label="global" data="0" />
+				<mx:Object label="scène" data="1" />
+			</mx:dataProvider>
+		</mx:ComboBox>
+		<mx:Label text="niv." />
+		<mx:NumericStepper id="nsEditedLevel" width="60" maximum="200" value="{editedLevel}" change="{editedLevel=nsEditedLevel.value}" />
+	</mx:HBox>
 	<mx:HBox width="100%">
 		<mx:VBox width="50%">
 			<!-- boutons ajouter / supprimer / parent trigger -->
@@ -1985,7 +2056,8 @@
 		</mx:VBox>
 	</mx:HBox>
 	
-	<mx:TabNavigator id="tn_triggerOpts" width="100%" height="100%" paddingLeft="10" paddingTop="10" paddingRight="10" paddingBottom="10"  backgroundColor="#F7F7F7">
+	<mx:TabNavigator id="tn_triggerOpts" width="100%" height="100%" paddingLeft="10" paddingTop="10" paddingRight="10" paddingBottom="10"  backgroundColor="#F7F7F7"
+		change="onTabChange()" enabled="{currentTrigger!=null}">
 		<!-- 
 			Onglet conteneur formaulaire additionnel
 		-->
@@ -1997,5 +2069,12 @@
 		<mx:Box width="100%" label="options génériques">
 			<flmp:TriggerForm0 id="comAddForm" proxy="{this}" />
 		</mx:Box>
+		<!-- 
+			Onglet Conditions
+		-->
+		<mx:Box width="100%" label="conditions">
+			<flmp:TriggerFormCond id="comCondForm" proxy="{this}" />
+		</mx:Box>
+
 	</mx:TabNavigator>
 </mx:Box>

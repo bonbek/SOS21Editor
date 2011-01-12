@@ -171,10 +171,11 @@
 		}
 		
 		
-		private function keyBoardHandler(event:KeyboardEvent):void
+		private function keyBoardHandler (event:KeyboardEvent) : void
 		{
 			var kc:uint = event.keyCode;
-			if (kc == 80) // onest sur la touche espace
+
+			if (kc == 80) // onest sur la touche p
 			{
 				if (event.type == KeyboardEvent.KEY_DOWN)
 				{
@@ -212,6 +213,7 @@
 		private function onApplicationInitialized (event:Event):void
 		{
 			betaApp.removeEventListener("applicationInitialized", onApplicationInitialized, false);
+			parentApplication.beta = betaApp;
 			// on s'abonne à la construction de la première scène
 			betaApp.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, cleanViewport, false, 500);
 		}
@@ -226,7 +228,6 @@
 			{
 				case container :
 				{
-					trace(this, "app loaded");
 					// on stock le root de la beta
 					betaApp = event.target.content;
 					// chargement config
@@ -249,7 +250,7 @@
 		 * Réception de l'affichage de la premierère map
 		 * On enleve l'ui et on recale l'affichage de la scène
 		 */
-		private function cleanViewport(event:Event = null):void
+		private function cleanViewport (event:Event = null) : void
 		{
 			betaApp.facade.publicChannel.removeEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, cleanViewport, false);
 
@@ -257,8 +258,8 @@
 			isoSceneHelper = betaApp.facade.getObserver(HelperList.ISOSCENE_HELPER);
 			
 			// on passe la référence à l'appli
-			parentApplication.beta = betaApp;			
-			parentApplication.setFacade(betaApp.facade);
+//			parentApplication.beta = betaApp;
+//			parentApplication.setFacade(betaApp.facade);
 			
 			this.title = parentApplication.datamapProxy.title;
 			

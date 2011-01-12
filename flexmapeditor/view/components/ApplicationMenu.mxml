@@ -113,6 +113,7 @@
 							<menuitem label="la grille de collisions" data="editCollisions" type="radio" groupName="edit" />
 	                        <menuitem label="les actions" data="editTrigger" type="radio" groupName="edit" />
 							<menuitem label="propriétés de scène" data="editMapConfig" type="radio" groupName="edit" />
+							<menuitem label="variables env" data="editEnv" />
 	                    </menuitem>
 	                    <menuitem label="Affichage">
 							<menuitem label="calque de fond" data="dispBackground" type="check" toggled="true" />

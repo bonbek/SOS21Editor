@@ -11,13 +11,13 @@
 		import mx.events.FlexEvent;
 		
 		/**
-		 *	Formulaire additionnel pour triggers type displatch event
+		 *	Formulaire additionnel pour triggers type dispatch event
 		 *
 		 *	@langversion ActionScript 3.0
 		 *	@playerversion Flash 9.0
 		 */
 				
-		// trigger en pris en charge par cette instance
+		// trigger pris en charge par cette instance
 		private var _trigger:Object;
 		[Bindable]
 		public function set trigger(t:Object):void {
@@ -54,7 +54,7 @@
 		 *	@param	trigger	 qui va être supprimé
 		 *	@private
 		 */
-		public function onDeleteTrigger(trigger:Object = null):void
+		public function onDeleteTrigger (trigger:Object = null) : void
 		{ }
 		
 		/**

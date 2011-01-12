@@ -43,6 +43,7 @@
 		
 		import flexmapeditor.view.components.PopupList;
 		import flexmapeditor.view.components.LoginBox;
+		import flexmapeditor.view.components.EnvEditor;
 
 		
 		/**
@@ -61,7 +62,7 @@
 		// popup en cours
 		private var currentPopup:Object;
 		// dernier état en cours
-		private var lastState:String;
+		private var lastState:String = "editTriggers";
 		
 		//---------------------------------------
 		// PUBLIC VARIABLES
@@ -69,7 +70,7 @@
 		
 		// connection amfphp
 		private var _gateway:NetConnection;
-		public var beta:Object;
+		private var _beta:Object;
 		// facade de la beta
 		public var facade:Object;
 		
@@ -83,8 +84,11 @@
 		public var isosceneHelper:Object;
 		// ObjectBuilderProxy
 		public var objectBuilderProxy:Object;
-
+		public var playerHelper:Object;
+		public var playerProxy:Object;
 		public var configProxy:Object;
+		// éditeur variables environnement
+		public var envEditor:EnvEditor;
 
 		[Bindable]
 		public var saveBtnLabel:String;
@@ -93,6 +97,21 @@
 		//---------------------------------------
 		// GETTER / SETTERS
 		//---------------------------------------
+		
+		public function get beta () : Object
+		{ return _beta; }
+		
+		public function set beta (val:Object) : void
+		{
+			_beta = val;
+			_beta.facade.publicChannel.addEventListener("appReady", testMe, false, 0);
+			
+		}
+		
+		private function testMe (e:Event) : void
+		{
+			setFacade(_beta.facade);
+		}
 		
 		public function get gateway () : NetConnection
 		{ return _gateway; }
@@ -109,7 +128,7 @@
 		 * Passage référence à la Facade de la beta (voir Viewport.loaderCompleteHandler)
 		 * On fait un petit taf d'initialisation, arrêt des triggers, etc...
 		 */
-		public function setFacade(val:Object):void
+		public function setFacade (val:Object) : void
 		{
 			
 			facade = val;
@@ -126,10 +145,19 @@
 			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY)
 			collisionGridProxy = facade.getProxy(ProxyList.COLLISIONGRID_PROXY);
 			datamapProxy = facade.getProxy(ProxyList.DATAMAP_PROXY);
-
+			playerProxy = facade.getProxy(ProxyList.PLAYER_PROXY);
 			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY);
 			isosceneHelper = facade.getObserver(ddgame.client.view.HelperList.ISOSCENE_HELPER);
 			objectBuilderProxy = facade.getProxy(ProxyList.OBJECTBUILDER_PROXY);
+			envEditor = new EnvEditor;
+			envEditor.datamapProxy = datamapProxy;
+			envEditor.gateway = _gateway;
+			envEditor.playerProxy = playerProxy;
+			playerHelper = facade.getObserver(ddgame.client.view.HelperList.PLAYER_HELPER);
+			
+			playerProfil.playerProxy = playerProxy;
+			playerProfil.gateway = _gateway;
+			
 			
 			// on coupe les triggers
 			triggersProxy.triggersEnabled = false;
@@ -137,16 +165,24 @@
 			facade.getObserver(ddgame.helper.HelperList.AUDIO_HELPER).muteMusic();
 			
 			// on s'abonne à la construction des scènes
-			facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 0, true);
+//			facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 100, true);
+
+//			triggersProxy.channel.addEventListener("triggerExecute", preventTriggers);
+//			triggersProxy.channel.addEventListener("timer", preventTriggers);
+			
+			isosceneHelper.channel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 500, true);
 			// ecoute clavier
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
 	
-			currentState = "editTriggers";
+//			currentState = "editTriggers";
 		}
 		
 		//---------------------------------------
 		// PUBLIC METHODS
 		//---------------------------------------
+		
+		public function getHelper (name:String) : Object
+		{ return facade.getObserver(name); }
 		
 		/**
 		 *	Recharge la scène en cours
@@ -192,10 +228,16 @@
 		
 		private function onSceneBuilded (event:Event) : void
 		{
+			trace("ON SCENE BUILDED", this);
 			// on enleve les listeners de la scene iso
 			isosceneHelper.removeListeners();
 			if (lastState && previewMode == false)
 				currentState = lastState;
+			
+			if (!previewMode) {
+				event.preventDefault();
+				triggersProxy.triggersEnabled = false;
+			}
 		}
 		
 		/**
@@ -276,6 +318,12 @@
 				case "editMapConfig" :
 				{
 					currentState = "editMapConfig";
+					break;
+				}
+				case "editEnv" :
+				{
+					PopUpManager.addPopUp(envEditor, this, true);
+					PopUpManager.centerPopUp(envEditor);
 					break;
 				}
 				case "dispBackground" :
@@ -521,6 +569,8 @@
 	<mx:Box id="appCanvas" width="100%" height="100%" backgroundColor="#E8E8E8" focusEnabled="false">
 		<mx:HBox width="100%" focusEnabled="false">
 			<flmp:ApplicationMenu id="menuBar" width="100%" />
+			<flmp:PlayerProfil id="playerProfil" paddingRight="295" />
+			
 			<flmp:SButton id="bt_preview"
 				icon="@Embed('flexmapeditor/view/components/icons/rainbow.png')"
 				toolTip="tester la scène" toggle="true" click="switchPreview()" 

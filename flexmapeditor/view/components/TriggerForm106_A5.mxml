@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	paddingTop="20" paddingLeft="20" paddingBottom="20" paddingRight="20"
+	title="Editer les options faire parler / penser">
+
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.utils.Dictionary;
+		
+		/**
+		 *	Options du formulaire 106
+		 * 	> Action 5 animer objet
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2011-01-05
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var target:Object;
+		private var options:Object;
+		// état originel du tile
+		private var initTargetStates:Object = {};
+		// fastPreview
+		private var previews:Dictionary = new Dictionary(true);
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		[Bindable]
+		public var dpAnimations:Array;
+		[Bindable]
+		public var animationFrameCount:int;
+		[Bindable]
+		public var currentFrame:int;
+		[Bindable]
+		public var loopCount:int;
+		
+		public var proxy:TriggerForm106;
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Passage du tile cible et des options d'actions
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function setData (target:Object, options:Object) : void
+		{
+			// on nettoie au cas ou
+			if (this.target) dispose();
+			
+			this.target = target;
+			this.options = options;
+
+			// mémorisation des états initiaux du tile
+			initTargetStates.a = target.animation;
+			initTargetStates.f = target.currentFrame;
+			initTargetStates.r = target.rotation;
+			
+			// reflet options sur le tile
+			if (options.a) target.gotoAndStop(options.a);
+			if (options.r) target.rotation = options.r;
+			
+			// maj composants / layout
+			dpAnimations = target.animations;
+			cbAnimations.selectedIndex = dpAnimations.indexOf(options.a);
+			nsRotation.value = options.r  ? options.r : target.rotation;
+			
+			if (!options.f) {
+				rdAnimate.selected = true;
+				rdFrame.selected = false;
+				currentState = "animateOption";
+				loopCount = options.l ? options.l : 1;
+			}
+			else {
+				rdFrame.selected = true;
+				rdAnimate.selected = false;
+				currentState = "frameOption";
+				animationFrameCount = target.currentFrameCount;
+				// maj target + composant
+				target.setFrame(options.f);
+				currentFrame = options.f
+			}
+		}
+		
+		/**
+		 * Aperçu "rapide" des effets de l'action
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function fastPreview (target:Object, options:Object) : void
+		{
+			if (!previews[target])
+			{
+				var opts:Object = {};
+				opts.a = target.animation;
+				opts.f = target.currentFrame;
+				opts.r = target.rotation;
+				previews[target] = opts;			
+			}
+			// reflet options sur le tile
+			if (options.a) target.gotoAndStop(options.a);
+			if (options.r) target.rotation = options.r;
+			if (options.f) target.setFrame(options.f);
+		}
+
+		/**
+		 *	Remise en l'état de toutes les previews
+		 */
+		public function disposeAllPreviews () : void
+		{
+			for (var t:Object in previews)
+				disposePreview(t, null);
+		}
+		
+		/**
+		 * 	Remise en l'état d'une preview
+		 *	@param target Object
+		 *	@param options Object
+		 */
+		public function disposePreview (target:Object, options:Object) : void
+		{
+			var opts:Object = previews[target];
+			if (!opts) return;
+			
+			target.gotoAndStop(opts.a);
+			target.setFrame(opts.f);
+			target.rotation = opts.r;
+			
+			delete previews[target];
+		}
+		
+		/**
+		 * @private
+		 * Remise en l'état du tile cible
+		 */
+		public function dispose () : void
+		{
+			if (!target) return;
+
+			target.gotoAndStop(initTargetStates.a);
+			target.setFrame(initTargetStates.f);
+			target.rotation = initTargetStates.r;			
+			target = options = null;
+		}		
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * Réception changement des options
+		 *	@param event Event
+		 */
+		private function onChange (event:Event) : void
+		{
+			switch (event.target)
+			{
+				// Choix animer objet
+				case rdAnimate :
+					currentState = "animateOption";
+					target.setFrame(1);
+					loopCount = 1;
+					delete options.f;
+					break;
+				// Choix afficher une image
+				case rdFrame :
+					currentState = "frameOption";
+					options.f = 1;
+					target.setFrame(1);
+					// nbre frame de l'anim
+					animationFrameCount = target.currentFrameCount;
+					delete options.l;
+					break;
+				// Etiquette de l'animation à jouer
+				case cbAnimations :
+				{
+					target.gotoAndStop(options.a = dpAnimations[cbAnimations.selectedIndex]);
+					target.setFrame(1);
+					// nbre frame de l'anim
+					animationFrameCount = target.currentFrameCount;
+					// pas de break pour passer par la mise
+					// à jour de la rotation...
+				}
+				// Rotation du tile
+				case nsRotation :
+				{
+					var nr:int = findNearestRotation(nsRotation.value);
+					target.rotation = options.r = nsRotation.value = nr;
+					break;
+				}
+				case nsLoop :
+					options.l = nsLoop.value;
+					break;
+				case nsFrame :
+					options.f = nsFrame.value;
+					target.setFrame(nsFrame.value);
+					break;
+			}
+		}
+		
+		/**
+		 * Gestion aperçu de l'animation + états boutons
+		 * aperçu
+		 *	@param event Event
+		 */
+		private function animationPreview (event:Event) : void
+		{
+			switch (event.target)
+			{
+				case btPrev :
+					if (btPrev.toggle) {
+						if (!btPrev.selected) {
+							target.stop();
+							target.setFrame(1);
+						}
+						else {
+							target.play();
+						}
+					}
+					else {
+						target.play(1);
+					}
+					break;
+				case btLoop :
+					if (btLoop.selected) {
+						btPrev.toggle = true;
+					}
+					else {
+						if (btPrev.selected) target.play(1);
+						btPrev.toggle = false;
+					}
+			}
+		}
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------
+		
+		/**
+		 *	@private
+		 * Utile pour trouver la rotation existante la plus proche
+		 *	@return int
+		 */
+		public function findNearestRotation (nr:int) : int
+		{
+			// angle actuel de ref
+			var tr:int = target.rotation;
+			var angles:Array = target.angles;
+
+			if (angles.indexOf(nr)  == -1)
+			{
+				var cur:int = angles.indexOf(tr);
+				// la rotation actuelle du tile n'existe pas dans son animation
+				// son animation à changée on pointe le premier angle de son anim
+				if (cur == -1)
+					return angles[0];
+				// on cherche un angle supérieur
+				if (nr > tr)
+					return cur < angles.length - 1 ? angles[++cur] : angles[0];
+				// on cherche un angle inférieur
+				return cur == 0 ? angles[angles.length-1] : angles[--cur];
+			}
+
+			return nr;
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<!-- 
+		 	Options liés à l'animation -->
+		<mx:State name="animateOption">
+			<mx:AddChild>
+				<mx:HBox>
+					<mx:Label text="répéter" />
+					<mx:NumericStepper id="nsLoop" value="{loopCount}" maximum="1000"
+						change="onChange(event);"/>
+				</mx:HBox>
+			</mx:AddChild>
+		</mx:State>
+		<!-- 
+		 	Options liés à l'affichage image -->
+		<mx:State name="frameOption">
+			<mx:AddChild>
+				<mx:HBox>
+					<mx:Label text="image" />
+					<mx:NumericStepper id="nsFrame" minimum="1" value="{currentFrame}"
+						maximum="{animationFrameCount}" change="onChange(event);" />
+				</mx:HBox>
+			</mx:AddChild>
+		</mx:State>
+	</mx:states>
+	
+	<!-- 
+	 	Choix entre jouer animation et afficher une image -->
+	<mx:HBox>
+		<mx:RadioButton id="rdAnimate" label="Jouer une animation" groupName="toto"
+			click="onChange(event);" />
+		<mx:RadioButton id="rdFrame" label="Afficher une image" groupName="toto"
+			click="onChange(event);"/>
+	</mx:HBox>
+	
+	<mx:HBox width="100%">
+		<!--
+			liste des animations -->
+		<mx:ComboBox id="cbAnimations" width="140" dataProvider="{dpAnimations}"
+				change="onChange(event)" />
+		<!--
+			aperçu animation -->
+		<mx:Button id="btPrev" width="30" icon="@Embed('icons/pill_go.png')"
+			click="animationPreview(event)" enabled="{rdAnimate.selected}" />
+		<mx:Button id="btLoop" width="30" icon="@Embed('icons/arrow_refresh.png')"
+			toggle="true" change="animationPreview(event)" enabled="{rdAnimate.selected}" />
+		<!--
+			rotation -->			
+		<mx:NumericStepper id="nsRotation" width="50" stepSize="45" maximum="360"
+			change="onChange(event)" />
+	</mx:HBox>
+	
+	<mx:Spacer height="10" />
+	
+</mx:TitleWindow>
