@@ -13,6 +13,7 @@
 		import flash.events.MouseEvent;
 		import flash.geom.Point;
 		import flash.filters.GlowFilter;
+		import flexmapeditor.view.components.renderer.TriggerBrowserListItem;
 		
 		/**
 		 *	Formulaire additionnel pour triggers type bouger un tile
@@ -53,6 +54,17 @@
 		//---------------------------------------
 		// PUBLIC METHODS
 		//---------------------------------------
+		
+		public function createDescriptor (trigger : Object) : Object
+		{
+			var des:Object = {}
+			des.title = "Déplacer objet";
+//			des.summary = null;
+//			des.description = null;
+			
+			return des;
+		}
+		
 		
 		/**
 		 *	Appelé au changement du trigger à éditer

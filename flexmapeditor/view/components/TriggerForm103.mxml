@@ -9,6 +9,7 @@
 	    <![CDATA[
 		
 		import mx.events.FlexEvent;
+		import flexmapeditor.view.components.renderer.TriggerBrowserListItem;
 		
 		/**
 		 *	Formulaire additionnel pour triggers type bonus joueur
@@ -37,6 +38,30 @@
 		 */
 		public function safeSave() : void
 		{ updateOnSave(); }
+		
+		public function createDescriptor (trigger:Object) : Object
+		{
+			var des:Object = {};
+			
+			var summary:String = "";
+			var args:Object = trigger.arguments;
+			if ("plev" in args)
+				summary += args["plev"] + " pts niveau";
+			if ("ppir" in args)
+				summary += args["ppir"] + " pts piraniak";
+			if ("psoc" in args)
+				summary += args["psoc"] + " pts social";
+			if ("peco" in args)
+				summary += args["peco"] + " pts économie";
+			if ("penv" in args)
+				summary += args["penv"] + " pts environnement";
+
+			des.title = "Bonus joueur";
+			des.summary = summary;
+			des.description = "trigger " + trigger.id + "description<br>description<br>description<br>description<br>description<br>description<br>";
+
+			return des;
+		}
 		
 		/**
 		 * Retourne la liste des Arguments "vitaux" pour ce type
