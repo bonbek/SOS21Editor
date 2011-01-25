@@ -116,6 +116,7 @@
 										{label:"signal ressources", data:5, enabled:false},
 										{label:"action(s) temps limité", data:105, enabled:true},
 										{label:"action(s) sur objet(s)", data:106, enabled:true},
+										{label:"jouer un son", data:108, enabled:true},
 										{label:"modifier variable(s)", data:107, enabled:true},
 										{label:"::dispatch event::", data:10, enabled:false},
 										{label:"::TScript::", data:104, enabled:false}]);
@@ -1445,6 +1446,7 @@
 			tra[105] = "action(s) temps limité";
 			tra[106] = "action(s) d'objets";
 			tra[107] = "modifier variable(s)";
+			tra[108] = "jouer un son";
 			
 			TriggerProperties.triggerClasses = tra;
 			
@@ -1482,6 +1484,7 @@
 			addForms[105] = new TriggerForm105();	// formulaire reach trigger
 			addForms[106] = new TriggerForm106();	// formulaire action tile
 			addForms[107] = new TriggerForm107();	// formulaire modifier variable
+			addForms[108] = new TriggerForm108();	// formulaire jouer un son
 			
 			// ?
 			cliTargetTriggers.dataProvider = [];
