@@ -117,6 +117,7 @@
 										{label:"action(s) temps limité", data:105, enabled:true},
 										{label:"action(s) sur objet(s)", data:106, enabled:true},
 										{label:"jouer un son", data:108, enabled:true},
+										{label:"condition", data:109, enabled:true},
 										{label:"modifier variable(s)", data:107, enabled:true},
 										{label:"::dispatch event::", data:10, enabled:false},
 										{label:"::TScript::", data:104, enabled:false}]);
@@ -219,7 +220,7 @@
 		public function updateTriggersList () : void
 		{
 			dpAllTriggers.removeAll()
-			var all:Array = triggersProxy.allTriggersInMap;
+			var all:Array = triggersProxy.allTriggers;
 			var tr:Object;
 			var schained:String;
 			var schainedTo:String;
@@ -243,7 +244,7 @@
 		
 		public function refreshTriggerList (toRefresh:Array = null) : void
 		{
-			if (!toRefresh) toRefresh = triggersProxy.allTriggersInMap;
+			if (!toRefresh) toRefresh = triggersProxy.allTriggers;
 			
 			var trprop:Object;
 			var itList:Object;
@@ -353,6 +354,64 @@
 		public function get currentTrigger () : Object
 		{ return _currentTrigger; }
 		
+		/**
+		 * Retourne la liste de tous les triggers, map en cours
+		 * et globaux (persitants)
+		 */
+		public function get allTriggers () : Array
+		{ return triggersProxy.allTriggers; }
+		
+		/**
+		 * Retourne la liste des triggers de la scène en cours
+		 */
+		public function get currentMapTriggers () : Array
+		{ return triggersProxy.currentMapTriggers; }
+		
+		/**
+		 * Retourne la liste de tous les triggers persistants
+		 */
+		public function get persistantTriggers () : Array
+		{ return triggersProxy.allPersistantTriggers; }
+		
+		/**
+		 *  Retourne la liste des triggers de la map en cours pour un niveau
+		 *  donné
+		 *	@param level int
+		 *	@return Array
+		 */
+		public function getCurrentMapTriggersForLevel (level:int) : Array
+		{
+			var olist:Array = currentMapTriggers;
+			// level 0 = tous levels confondus
+			if (level == 0) return olist;
+			
+			var list:Array = [];
+			for each (var t:Object in olist) {
+				if (t.level == level) list.push(t);
+			}
+			
+			return list;
+		}
+		
+		/**
+		 *  Retourne la liste des triggers persitants pour un niveau donné
+		 *	@param level int
+		 *	@return Array
+		 */
+		public function getPersitantTriggersForLevel (level:int) : Array
+		{
+			var olist:Array = persistantTriggers;
+			// level 0 = tous levels confondus
+			if (level == 0) return olist;
+			
+			var list:Array = [];
+			for each (var t:Object in olist) {
+				if (t.level == level) list.push(t);
+			}
+
+			return list;
+		}		
+		
 		//---------------------------------------
 		// PUBLIC METHODS
 		//---------------------------------------
@@ -363,7 +422,7 @@
 		 */ 
 		public function showGridTriggers():void
 		{
-			var alTriggers:Array = triggersProxy.allTriggersInMap;
+			var alTriggers:Array = triggersProxy.allTriggers;
 			var n:int = alTriggers.length;
 			while (--n > -1)
 			{
@@ -532,7 +591,7 @@
 		 */
 		public function findNextAvailableTriggerId () : int
 		{
-			var li:Array = triggersProxy.allTriggersInMap;
+			var li:Array = triggersProxy.allTriggers;
 			var n:int = li.length;
 			var i:int = 0;
 			var t:Object;
@@ -634,7 +693,7 @@
 //			comAddForm.updateOnSave();
 //			comCondForm.updateOnSave();
 
-			var alTriggers:Array = triggersProxy.allTriggersInMap;
+			var alTriggers:Array = triggersProxy.allTriggers;
 			var n:int = alTriggers.length;
 			alTriggers.sortOn("id", Array.DESCENDING);
 			var pa:Array = [];
@@ -1110,7 +1169,7 @@
 					var selId:int = sel.id; // identifiant du trigger selectionné
 					if (sel)
 					{
-						var allList:Array = triggersProxy.allTriggersInMap;
+						var allList:Array = triggersProxy.allTriggers;
 						var n:int = allList.length;
 						var tr:Object;
 						while (--n > -1)
@@ -1341,7 +1400,7 @@
 			
 			// TEST CLEAN DES suppression des triggers associés avec un tile
 			// qui n'existe plus
-			var all:Array = triggersProxy.allTriggersInMap;
+			var all:Array = triggersProxy.allTriggers;
 			var tr:Object;
 			n = all.length;
 			var desc:String;
@@ -1447,21 +1506,9 @@
 			tra[106] = "action(s) d'objets";
 			tra[107] = "modifier variable(s)";
 			tra[108] = "jouer un son";
+			tra[109] = "condition";
 			
 			TriggerProperties.triggerClasses = tra;
-			
-			/*triggersClass[0] = "non définie";
-			triggersClass[1] = "changer de scene";
-			triggersClass[2] = "lien/mailto/fichier";
-			triggersClass[3] = "quiz's";
-			triggersClass[4] = "menu contextuel";
-			triggersClass[5] = "signal ressources";
-			triggersClass[6] = "deplacer un tile";
-			triggersClass[7] = "étiquette";
-			triggersClass[8] = "lecteur Viméo";
-			triggersClass[9] = "popup html";
-			triggersClass[10] = "::dispatch event::";
-			triggersClass[103] = "bonus joueur";*/
 			
 			// instanciation des formulaires additionnels
 			addForms = [];
@@ -1485,6 +1532,7 @@
 			addForms[106] = new TriggerForm106();	// formulaire action tile
 			addForms[107] = new TriggerForm107();	// formulaire modifier variable
 			addForms[108] = new TriggerForm108();	// formulaire jouer un son
+			addForms[109] = new TriggerForm109();	// formulaire trigger condition
 			
 			// ?
 			cliTargetTriggers.dataProvider = [];

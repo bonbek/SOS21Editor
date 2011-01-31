@@ -39,9 +39,9 @@
 		 * 
 		 *	@private
 		 */
-		public function safeSave():void
+		public function safeSave () : void
 		{
-
+			updateOnSave();
 		}
 		
 		/**
@@ -51,7 +51,7 @@
 		 */
 		public function getSarfeArguments():Array
 		{
-			return ["lp"];
+			return ["sf","lp"];
 		}
 		
 		/**
@@ -68,27 +68,31 @@
 		 *	Test et clean l'argument entryPoint
 		 *	@private
 		 */
-		public function updateOnSave():void
+		public function updateOnSave () : void
 		{
+			var nfile:String = tiSndFile.text;
+			// on check préload fichier
+			var pload:Array = _trigger.arguments["pload"];
+			if (_trigger.arguments["sf"] && pload)
+			{
+				var ind:int = pload.indexOf(_trigger.arguments["sf"]);
+				if (ind > -1) pload[ind] = nfile;
+				else
+					pload.push(nfile);
+			}
+			else if (pload) {
+				pload.push(nfile);
+			}
+			else {
+				_trigger.arguments["pload"] = [nfile];
+			}
+			
+			_trigger.arguments["sf"] = nfile;
+			_trigger.arguments["lp"] = nsLoop.value;
 		}
 		
-		private function onChange (event:Event) : void
-		{
-			switch (event.target)
-			{
-				case tiSndFile :
-					_trigger.arguments["pload"] = [tiSndFile.text];
-					break;
-				case nsLoop :
-					_trigger.arguments["lp"] = nsLoop.value;
-					break;
-			}
-		} 
-		
 		/**
-		 *	Event handler for Creation Complete event.
-		 *	
-		 *	@see mx.events.FlexEvent
+		 *	@private
 		 */
 		private function onCreationComplete () : void
 		{
@@ -96,9 +100,10 @@
 			tiSndFile.text = "";
 			
 			var args:Object = _trigger.arguments;
-			if ("pload" in args)
-				tiSndFile.text = args["pload"][0];
-
+			// url du fichier
+			if ("sf" in args)
+				tiSndFile.text = args["sf"];
+			// paramètres nombre de boucles
 			if ("lp" in args)
 				nsLoop.value = args["lp"];
 		}
@@ -107,9 +112,9 @@
 	</mx:Script>
 	
 	<mx:Label text="url fichier mp3" />
-	<mx:TextInput id="tiSndFile" width="100%" change="onChange(event);" />
+	<mx:TextInput id="tiSndFile" width="100%" change="updateOnSave();" />
 	<mx:HBox width="100%">
 		<mx:Label text="Nombre de lectures" />
-		<mx:NumericStepper id="nsLoop" maximum="500" change="onChange(event);" />
+		<mx:NumericStepper id="nsLoop" maximum="500" change="updateOnSave();" />
 	</mx:HBox>
 </mx:VBox>

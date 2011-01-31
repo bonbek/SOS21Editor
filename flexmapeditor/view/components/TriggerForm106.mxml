@@ -17,7 +17,6 @@
    		import mx.managers.CursorManager;
 		import mx.managers.PopUpManager;
 		import mx.core.IFlexDisplayObject;
-//		import components.TriggerForm106_P1;
 		
 		/**
 		 *	Formulaire additionnel pour triggers type action sur tile
@@ -36,7 +35,7 @@
 		public var arrowDownIcon:Class;
 		
 		[Embed("icons/wand-left.png")]
-	   private var customCursor:Class;
+	   	private var customCursor:Class;
 		
 		[Bindable]
 		public var dpButtonBar:Array = [	{ icon:addIcon, toolTip:"ajouter une entrée", id:"add" },
@@ -51,6 +50,7 @@
 		private var optionPop3:TriggerForm106_A3;
 		private var optionPop4:TriggerForm106_A4;
 		private var optionPop5:TriggerForm106_A5;
+		private var optionPop6:TriggerForm106_A6;
 		// liste des preview
 		private var fastPreviews:Array = [];
 		
@@ -59,15 +59,16 @@
 		//---------------------------------------
 		
 		[Bindable]
-		private var dpActions:ArrayCollection = new ArrayCollection();
+		public var dpActions:ArrayCollection = new ArrayCollection();
 		// liste types d'actions
 		[Bindable]
-		private var actionTypes:Array = [	{label:"cacher", data:0, state:"0"},
+		public var actionTypes:Array = [	{label:"cacher", data:0, state:"0"},
 											{label:"afficher", data:1, state:"0"},
 											{label:"téléporter", data:2, state:"2"},
 											{label:"déplacer", data:3, state:"2"},
 											{label:"parler / penser", state:"4"},
-											{label:"animer", data:5, state:"5"} ];
+											{label:"animer", data:5, state:"5"},
+											{label:"son", data:5, state:"6"} ];
 		
 		
 		private function get sAction () : Object
@@ -272,6 +273,8 @@
 					case 5 :
 						optionPop5.fastPreview(tile, act.p);
 						break;
+					case 6 :
+						break;
 				}
 			}
 			
@@ -340,6 +343,13 @@
 						optionPop5.setData(tile, sAction.p);
 					}
 					break;
+				// > Jouer un son
+				case 6 :
+					popup = optionPop6
+				 	PopUpManager.addPopUp(popup, parent);
+					optionPop6.setData(sAction.p);
+					break;
+					
 			}
 		}
 		
@@ -365,8 +375,8 @@
 		{
 			if (!popup) return;
 			
-			optionPop0.x = optionPop1.x = optionPop3.x = optionPop4.x = optionPop5.x = popup.x;
-			optionPop0.y = optionPop1.y = optionPop3.y = optionPop4.y = optionPop5.y = popup.y;
+			optionPop0.x = optionPop1.x = optionPop3.x = optionPop4.x = optionPop5.x = optionPop6.x = popup.x;
+			optionPop0.y = optionPop1.y = optionPop3.y = optionPop4.y = optionPop5.y = optionPop6.y = popup.y;
 			
 			switch (popup)
 			{
@@ -389,7 +399,37 @@
 				case optionPop5 :
 					optionPop5.dispose();
 					PopUpManager.removePopUp(popup);
-					break;					
+					break;
+				case optionPop6 :
+					optionPop6.dispose();
+					PopUpManager.removePopUp(popup);
+					break;				
+			}
+		}
+		
+		/**
+		 *	@private
+		 *  Appelé à le suppression d'une action
+		 */
+		private function removeAction (action:Object) : void
+		{
+			if (!popup) return;
+			
+			switch (popup)
+			{
+				case optionPop0 : 
+					break;				
+				case optionPop1 :
+					break;
+				case optionPop3 :
+					break;				
+				case optionPop4 :
+					break;
+				case optionPop5 :
+					break;
+				case optionPop6 :
+					optionPop6.removed(action.p);
+					break;				
 			}
 		}
 		
@@ -421,34 +461,13 @@
 				case "remove" :
 					if (!dgActions.selectedItem) return;
 					
-					disposeOptions();
 					disposePreview();
+					disposeOptions();
+					removeAction(sAction);
 					
 					ind = dgActions.selectedIndex;
 					dpActions.removeItemAt(ind);
 					return;
-					/*nind = dpActions.length - 1;
-					if (nind <= 0)
-					{
-						disposePreview();
-						return;						
-					}
-					
-					trace("n:", n, "ind:", ind, "nind:", nind)
-					
-					// on à enlvé le dernier
-					if (ind >= nind ) {
-						dgActions.selectedIndex = nind;
-						trace("selected last", nind);
-					} else {
-						if (ind == 0) {
-							trace("selected 0", 0);
-							dgActions.selectedIndex = 0;
-						}else{
-							trace("selected ind", ind);
-//							dgActions.selectedIndex = ind;
-						}
-					}*/
 					break;
 				case "up" :
 					if (!dgActions.selectedItem) return;
@@ -507,9 +526,10 @@
 			optionPop3 = new TriggerForm106_A3;
 			optionPop4 = new TriggerForm106_A4;
 			optionPop5 = new TriggerForm106_A5;
-			optionPop0.proxy = optionPop1.proxy = optionPop3.proxy = optionPop4.proxy = optionPop5.proxy = this;
-			optionPop0.x = optionPop1.x = optionPop3.x = optionPop4.x = optionPop5.x = 500;
-			optionPop0.y = optionPop1.y = optionPop3.y = optionPop4.y = optionPop5.y = 200;
+			optionPop6 = new TriggerForm106_A6;
+			optionPop0.proxy = optionPop1.proxy = optionPop3.proxy = optionPop4.proxy = optionPop5.proxy = optionPop6.proxy = this;
+			optionPop0.x = optionPop1.x = optionPop3.x = optionPop4.x = optionPop5.x = optionPop6.x = 500;
+			optionPop0.y = optionPop1.y = optionPop3.y = optionPop4.y = optionPop5.y = optionPop5.y = 200;
 
 			// clean dataProvider
 			dpActions.removeAll();
@@ -590,7 +610,7 @@
 	<!-- 
 	 	Durée / attente fin -->
 	<mx:HBox enabled="{dgActions.selectedItem != null}">
-		<mx:ComboBox id="cbActionType" rowCount="6" dataProvider="{actionTypes}" close="onEditAction(event)" />
+		<mx:ComboBox id="cbActionType" rowCount="20" dataProvider="{actionTypes}" close="onEditAction(event)" />
 		<mx:Label text="durée" />
 		<mx:NumericStepper id="nsDuration" stepSize=".1" enabled="{!ckWaitEnd.selected || cbActionType.selectedIndex==4}" change="onEditAction(event)" />
 		<mx:CheckBox id="ckWaitEnd" label="att. fin" change="onEditAction(event)" />

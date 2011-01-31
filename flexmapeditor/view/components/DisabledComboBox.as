@@ -27,19 +27,19 @@ package flexmapeditor.view.components
           {
               super();
               this.dropdownFactory = new ClassFactory(DisabledList);
-              this.itemRenderer = new ClassFactory(DisabledListItemRenderer);
+              //this.itemRenderer = new ClassFactory(DisabledListItemRenderer);
           }
          
           /**
            *  @private
            */
-          override public function set dataProvider(value:Object):void
+          /*override public function set dataProvider(value:Object):void
           {        
               super.dataProvider = value;
               moveToEnable();
-          }
+          }*/
          
-          private function moveToEnable():void {
+          /*private function moveToEnable():void {
             var i:int = -1; 
             for each (var obj:Object in dataProvider) {
                   i++;
@@ -49,50 +49,69 @@ package flexmapeditor.view.components
                   if (i < this.selectedIndex) {
                         continue;
                   }
-                  if (obj != null
-                        && ((obj is XML && obj.@enabled == 'false')
-                              || obj.enabled==false || obj.enabled=='false')){                      
-                        if(i == this.selectedIndex){
-                              this.selectedIndex++;
-                        }
+                  if (obj != null && ("@enabled" in obj || "enabled" in obj))
+						{
+							if (	(obj is XML && obj.@enabled == 'false')
+									|| obj.enabled == false || obj.enabled == 'false')
+                        {
+                        	if (i == this.selectedIndex) this.selectedIndex++;
+								}
                   }
             }
             if (this.selectedIndex > i) {
                   this.selectedIndex = 0;
             }
-          }
+          }*/
          
-          override public function initialize():void
+			/*override protected function displayDropdown():void {
+			                        var p:Point = localToGlobal(new Point(0,0));
+			                        list.x = p.x;
+			                        if (p.y + height + list.height > stage.stageHeight) {
+			                                list.y = p.y - list.height;
+			                        } else {
+			                                list.y = p.y + height;
+			                        }
+			                }*/
+
+          /*override public function initialize():void
           {
-            this.toolTip = this.text;   
+            this.toolTip = this.text;
               if (initialized)
                   return;
               createChildren();
               super.initialize();
-          }
+          }*/
      
          /**
            *  @private
            *  Make sure the drop-down width is the same as the rest of the ComboBox
            */
-          override protected function updateDisplayList(unscaledWidth:Number,
-                                                        unscaledHeight:Number):void
+          override protected function updateDisplayList (unscaledWidth:Number,
+                                                        	unscaledHeight:Number):void
           {
               super.updateDisplayList(unscaledWidth, unscaledHeight);
               this.toolTip = this.text;
+/*trace(dropdown);*/
+					/*var p:Point = localToGlobal(new Point(0,0));
+               list.x = p.x;
+               if (p.y + height + list.height > stage.stageHeight) {
+                       list.y = p.y - list.height;
+               } else {
+                       list.y = p.y + height;
+               }*/
           }
            
-          private function textInput_valueCommitHandler(event:FlexEvent):void
+          /*private function textInput_valueCommitHandler(event:FlexEvent):void
           {
               // update _text if textInput.text is changed programatically
               super.text = textInput.text;
               dispatchEvent(event);
-          }
+          }*/
          
-          private function textInput_enterHandler(event:FlexEvent):void
+          /*private function textInput_enterHandler(event:FlexEvent):void
           {
               dispatchEvent(event);
               dispatchEvent(new FlexEvent(FlexEvent.VALUE_COMMIT));
-          }    
+          } */   
       }
 }

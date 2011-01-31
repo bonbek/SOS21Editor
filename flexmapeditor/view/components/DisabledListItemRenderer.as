@@ -1,5 +1,7 @@
 package flexmapeditor.view.components
 {
+	
+	
 /**
  * DisabledListItemRenderer.as
  *
@@ -26,30 +28,33 @@ package flexmapeditor.view.components
                   super();
             }    
 
+			
+
             /**
              *  @private
              */
-            override public function set data(value:Object):void
+            /*override public function set data (value:Object) : void
             {
-                  if (value != null && ((value is XML && value.@enabled == 'false')
-                              || value.enabled==false || value.enabled=='false')){
-                  this._enabled = false;
-           }else{
-                  this._enabled = true;
-           }
-                  super.data = value;
+					if (!value) return;
+
+					if ("@enabled" in value || "enabled" in value) {
+						this._enabled = value is XML ? value.@enabled : value.enabled;
+					}
+					else {
+						this._enabled = true;
+					}
+
+					super.data = value;
             }    
 
-            override protected function updateDisplayList(unscaledWidth:Number,
-                                                                          unscaledHeight:Number):void
+            override protected function updateDisplayList (	unscaledWidth:Number,
+																				unscaledHeight:Number) : void
             {
                   super.updateDisplayList(unscaledWidth, unscaledHeight);
-                  if (!this._enabled) {
-                        textField.setColor(getStyle("disabledColor"));
-                  }else{
-                        textField.setColor(getStyle("color"));
-                  }
-            }                                  
+                  if (!this._enabled) textField.setColor(getStyle("disabledColor"));
+                  else
+							textField.setColor(getStyle("color"));
+            } */                                 
       }
 }
 

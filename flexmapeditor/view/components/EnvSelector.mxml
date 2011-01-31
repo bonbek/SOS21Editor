@@ -366,13 +366,13 @@
 		<mx:State name="handEdit">
 			<mx:RemoveChild target="{btSelector}" />
 			<mx:AddChild position="firstChild">
-				<mx:TextInput id="tiSelector" width="100%" fontWeight="bold"
+				<mx:TextInput id="tiSelector" width="100%" height="{height}" fontWeight="bold"
 					change="tiSelectorChange()" />
 			</mx:AddChild>
 		</mx:State>
 	</mx:states>
 	
-	<mx:Button id="btSelector" width="100%"
+	<mx:Button id="btSelector" width="100%" height="{height}"
 		label="{label}"
 		textAlign="center"
 		cornerRadius="10"
@@ -381,6 +381,7 @@
 		click="btSelectorClick()"
 		toolTip="Mode assisté / saisie valeur" />
 	
-	<mx:Button id="btWand" toggle="true" selected="true" icon="@Embed('icons/wand.png')" width="24" change="onClickWand()" />
+	<mx:Button id="btWand" toggle="true" selected="true" icon="@Embed('icons/wand.png')"
+		width="24" height="{height}" change="onClickWand()" />
 	
 </mx:HBox>

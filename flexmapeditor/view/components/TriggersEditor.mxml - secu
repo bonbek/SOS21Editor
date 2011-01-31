@@ -162,7 +162,7 @@
 		/*public function buildTriggerList():void
 		{
 			dpAllTriggers.removeAll()
-			var all:Array = triggersProxy.allTriggersInMap;
+			var all:Array = triggersProxy.allTriggers;
 			var tr:Object;
 			var n:int = all.length;
 			for (var i:int = 0; i < n; i++) {
@@ -174,7 +174,7 @@
 		public function updateTriggersList () : void
 		{
 			dpAllTriggers.removeAll()
-			var all:Array = triggersProxy.allTriggersInMap;
+			var all:Array = triggersProxy.allTriggers;
 			var tr:Object;
 			var schained:String;
 			var schainedTo:String;
@@ -191,7 +191,7 @@
 		
 		public function refreshTriggerList(toRefresh:Array = null):void
 		{
-			if (!toRefresh) toRefresh = triggersProxy.allTriggersInMap;
+			if (!toRefresh) toRefresh = triggersProxy.allTriggers;
 			
 			var trprop:Object;
 			var itList:Object;
@@ -266,7 +266,7 @@
 		 */ 
 		public function showGridTriggers():void
 		{
-			var alTriggers:Array = triggersProxy.allTriggersInMap;
+			var alTriggers:Array = triggersProxy.allTriggers;
 			var n:int = alTriggers.length;
 			while (--n > -1)
 			{
@@ -422,7 +422,7 @@
 		 */
 		public function findNextAvailableTriggerId():int
 		{
-			var li:Array = triggersProxy.allTriggersInMap;
+			var li:Array = triggersProxy.allTriggers;
 			var n:int = li.length;
 			var i:int = 0;
 			while (--n > -1 )
@@ -464,7 +464,7 @@
 			if (currentAddForm)
 				currentAddForm.updateOnSave();
 
-			var alTriggers:Array = triggersProxy.allTriggersInMap;
+			var alTriggers:Array = triggersProxy.allTriggers;
 			var n:int = alTriggers.length;
 			alTriggers.sortOn("id", Array.DESCENDING);
 			var pa:Array = [];
@@ -856,7 +856,7 @@
 					var selId:int = sel.id; // identifiant du trigger selectionné
 					if (sel)
 					{
-						var allList:Array = triggersProxy.allTriggersInMap;
+						var allList:Array = triggersProxy.allTriggers;
 						var n:int = allList.length;
 						var tr:Object;
 						while (--n > -1)
@@ -1175,7 +1175,7 @@
 			
 			// TEST CLEAN DES suppression des triggers associés avec un tile
 			// qui n'existe plus
-			var all:Array = triggersProxy.allTriggersInMap;
+			var all:Array = triggersProxy.allTriggers;
 			var tr:Object;
 			n = all.length;
 			for (var i:int = 0; i < n; i++) {
@@ -1627,7 +1627,7 @@
 							sind = i;
 					}
 				/*} else {
-					alTriggers = triggersProxy.allTriggersInMap;
+					alTriggers = triggersProxy.allTriggers;
 					tid = trigger.id;
 					n = alTriggers.length;
 					var ptp:Object;

@@ -48,6 +48,9 @@
 					{label:"ne contient pas", data:"(!)", art:""}];
 
 		
+		[Bindable]
+		public var rowCount:int = 3;
+		
 		// liste des conditions
 		[Bindable]
 		public var conditionList:ArrayCollection = new ArrayCollection();
@@ -318,7 +321,7 @@
 		</mx:HBox>
 	<!-- 
 	Liste des conditions -->
-	<mx:List id="lsCond" width="100%" rowCount="3" labelFunction="conditionLabelFunction"
+	<mx:List id="lsCond" width="100%" rowCount="{rowCount}" labelFunction="conditionLabelFunction"
 		showDataTips="true" dataProvider="{conditionList}"
 		itemRenderer="flexmapeditor.view.components.renderer.ConditionItemRenderer"
 		itemClick="onItemClickLsCond()" />
@@ -329,9 +332,9 @@
 		<!--
 		Selecteur -->
 		<mx:HBox width="100%">
-			<mx:Button id="cbPrefs" width="30" click="onChange(event)" />
+			<mx:Button id="cbPrefs" width="30" height="20" click="onChange(event)" />
 			<fx:EnvSelector id="env1" width="100%" editMode="assist" modeSwitcher="false"
-				change="onChange(event)" />
+				height="20" change="onChange(event)" />
 		</mx:HBox>
 	
 		<!-- 
@@ -339,6 +342,7 @@
 		<mx:HBox width="100%">
 			<mx:Spacer width="30" />
 			<mx:ComboBox id="cbOperator" width="100%" dataProvider="{dpOperators}"
+				height="20"
 				rowCount="{dpOperators.length}" close="onChange(event)"/>
 		</mx:HBox>
 		<!--
@@ -346,7 +350,7 @@
 		<mx:HBox width="100%">
 			<mx:Label text="{cbOperator.selectedItem.art}" width="30" textAlign="center" paddingTop="2" />
 			<fx:EnvSelector id="env2" width="100%" editMode="hand" modeSwitcher="true"
-				change="onChange(event)" />
+				height="20" change="onChange(event)" />
 		</mx:HBox>
 	</mx:Box>
 	

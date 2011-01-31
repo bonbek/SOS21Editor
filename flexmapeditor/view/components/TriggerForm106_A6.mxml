@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	paddingTop="20" paddingLeft="20" paddingBottom="20" paddingRight="20"
+	title="Editer les options jouer un son">
+
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		/**
+		 *	Options du formulaire 106
+		 * 	> Action 6 jouer un son
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2011-01-05
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+
+		protected var options:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+
+		// Internal
+		public var proxy:TriggerForm106;
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Passage du tile cible et des options d'actions
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function setData (options:Object) : void
+		{
+			this.options = options;
+						
+			// fichier son
+			tiSndFile.text = options.sf ? options.sf : "";
+			// nbr lectures
+			nsLoop.value = options.lp ? options.lp : 1;
+			// Mise à jour options au cas
+			options.lp = nsLoop.value;
+		}
+		
+		/**
+		 * Aperçu "rapide" des effets de l'action
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function fastPreview (options:Object) : void
+		{ // Pas de preview
+		}
+		
+		/**
+		 *	Remise en l'état de toutes les previews
+		 */
+		public function disposeAllPreviews () : void
+		{ //... pas de preview
+		}
+		
+		/**
+		 * 	Remise en l'état d'une preview
+		 *	@param target Object
+		 *	@param options Object
+		 */
+		public function disposePreview (options:Object) : void
+		{ //... pas de preview
+		}
+		
+		/**
+		 * @private
+		 * Remise en l'état originel
+		 */
+		public function dispose () : void
+		{ options = null; }
+		
+		/**
+		 *	@private
+		 * 	Appelé quand l'action à été supprimée
+		 *  endroit pour cleané certains paramètres spécifiques à l'action
+		 *  qui seraient injecté directement dans arguments trigger
+		 */
+		public function removed (options:Object) : void
+		{
+			// Nettoyage préload fichier son
+			if (options.sf)
+			{
+				var file:String = options.sf;
+
+				// Check si autre action son utilise ce même son
+				var inUse:Boolean;
+				for each (var act:Object in proxy.dpActions) {
+					// action type son
+					if (act.a == 6 && act.p != options)
+					{
+						if (String(act.p.sf) == file) {
+							inUse = true;
+							break;
+						}
+					}
+				}
+				
+				if (inUse) return;
+
+				var pload:Array = proxy.trigger.arguments["pload"];
+				var index:int = pload.indexOf(file);
+				if (index > -1) pload.splice(index, 1);
+			}
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * 	Changement des options
+		 *	@param event Event
+		 */
+		private function onChange (event:Event) : void
+		{
+			switch (event.target)
+			{
+				case tiSndFile :
+					var nfile:String = tiSndFile.text;
+					// on check préload fichier
+					var pload:Array = proxy.trigger.arguments["pload"];
+					if (options.sf && pload)
+					{
+						var ofile:String = options.sf;
+						var ind:int = pload.indexOf(ofile);
+						if (ind > -1) pload[ind] = nfile;
+						else
+							pload.push(nfile);
+					}
+					else if (pload) {
+						// On test quan même si le fichier est déjà en préload, une
+						// autre action son pointant ce même son par exemple...
+						if (pload.indexOf(nfile) == -1)
+							pload.push(nfile);
+					}
+					else {
+						proxy.trigger.arguments["pload"] = [nfile];
+					}
+					options.sf = nfile;
+					break;
+				case nsLoop :
+					options.lp = nsLoop.value;
+					break;
+			}
+			
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="url fichier mp3" />
+	<mx:TextInput id="tiSndFile" width="100%" change="onChange(event);" />
+	<mx:HBox>
+		<mx:Label text="Nombre de lectures" />
+		<mx:NumericStepper id="nsLoop" maximum="500" change="onChange(event);" />
+	</mx:HBox>
+	
+</mx:TitleWindow>
