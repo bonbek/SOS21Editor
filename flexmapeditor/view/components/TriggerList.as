@@ -143,7 +143,7 @@ package flexmapeditor.view.components {
 						}
 					}
 					// on ajoute l'item
-					dataProvider.addItem(o);					
+					dataProvider.addItem(o);
 					// on ajoute le prochain
 					_addItem(chained[0], depth);	
 				}

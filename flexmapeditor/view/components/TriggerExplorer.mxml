@@ -97,6 +97,61 @@
 		}
 		
 		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		public function browse (target:Object) : void
+		{
+			if (target is String)
+			{
+				switch (String(target))
+				{
+					case "all" :
+						list.dataProvider.removeAll();
+						
+						break;
+				}				
+			}
+			else {
+				var tid:String;
+				// on est sur un tile ou une céllule
+				if ("ID" in target)
+				{
+					list.dataProvider.removeAll();
+					// identifiant objet
+					tid = target.ID;
+					// on est sur une céllule
+					if (tid.indexOf("-") > -1)
+					{
+						// on recup les types de déclenchements pour céllules
+					}
+					else
+					{
+						// on recup les types de déclenchements pour tiles
+					}
+
+					// Essaie de recup liste pour le fireEventType donné (dans le cas d'un tile)
+					var trigList:Array = triggersProxy.getTriggerList(tid, "click");
+					if (!trigList) return;
+
+					for each (var t:Object in trigList)
+					{
+						list.addItem(t);
+						// addChild(TriggerBrowserListItem.create(t));
+						// addChild(createList(t));
+					}
+
+
+				}
+				// On est sur un trigger
+				else
+				{
+					// on recup les types de déclenchements pour triggers
+				}
+			}
+		}
+		
+		//---------------------------------------
 		// PRIVATE METHODS
 		//---------------------------------------	
 	    
