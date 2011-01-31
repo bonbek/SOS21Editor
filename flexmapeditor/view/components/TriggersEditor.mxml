@@ -32,6 +32,7 @@
 		import mx.controls.ComboBox;
 		import mx.controls.Text;
 		import mx.controls.TextArea;
+		import flexlib.mdi.managers.MDIManager;
 		
 		import flexmapeditor.vo.TriggerProperties;
 		
@@ -57,6 +58,8 @@
 		public var mapList:Array;
 		public var toolbar:Object;
 		public var viewport:Object;
+		
+		public var triggerExplorer:TriggerExplorer;
 		
 //		public var triggersVisualizer:TriggersVisualizer;
 			
@@ -293,7 +296,7 @@
 		// liste des id classe de triggers
 		private var _triggersClass:Array = [];
 		// liste des formulaire additionnels
-		private var addForms:Array = [];
+		public var addForms:Array = [];
 		
 		private var cellTemplate:Object;
 		private var cellTriggerVisible:Boolean = false;
@@ -772,6 +775,12 @@
 				tr[n].refId = nso;
 		}
 		
+		public function openExplorer () : TriggerExplorer
+		{
+			PopUpManager.addPopUp(triggerExplorer, this);
+			return triggerExplorer;
+		}
+		
 		//---------------------------------------
 		// EVENT HANDLERS
 		//---------------------------------------
@@ -941,6 +950,8 @@
 
 			// on test si l'objet cliqué est le courant
 			currentTarget = event.target;
+			
+			triggerExplorer.target = currentTarget;
 			
 			/*var tile:Object = event.target;
 			
@@ -1541,6 +1552,12 @@
 //			tn_triggerOpts.selectedIndex = ;
 			
 			_created = true;
+//			var manager:MDIManager = new MDIManager(parentApplication as UIComponent);
+			// Explorateur
+			triggerExplorer = new TriggerExplorer();
+//			manager.add(triggerExplorer);
+			triggerExplorer.editor = this;
+			openExplorer().browse("all");
 			
 			//
 			onAdd();

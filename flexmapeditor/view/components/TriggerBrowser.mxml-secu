@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="600" height="400"
+	title="Explorateur d'actions" showCloseButton="true"
+	backgroundColor="#999999"
+	close="PopUpManager.removePopUp(this)">
+	
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.managers.PopUpManager;
+		import flexmapeditor.view.components.renderer.TriggerBrowserListItem;
+		
+		/**
+		*	Explorateur d'actions
+		*
+		*	@langversion ActionScript 3.0
+		*	@playerversion Flash 9.0
+		*
+		*	@author Christopher Corbin
+		*	@since  2011-01-13
+		*/
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var _editor:TriggersEditor;
+		private var _target:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		/**
+		 * @private
+		 * Ref utiles
+		 */
+		public function get triggersProxy () : Object
+		{ return _editor.triggersProxy; }
+		
+		public function set editor (val:TriggersEditor) : void
+		{
+			_editor = val;
+			TriggerBrowserListItem.addForms = _editor.addForms;
+		}
+		
+		/**
+		 * Passage du l'objet à explorer (AbstractTile pour l'instant)
+		 */
+		public function set target (val:Object) : void
+		{
+			_target = val;
+			
+			var tid:String;
+			// on est sur un tile ou une céllule
+			if ("ID" in _target)
+			{
+				// identifiant objet
+				tid = _target.ID;
+				// on est sur une céllule
+				if (tid.indexOf("-") > -1)
+				{
+					// on recup les types de déclenchements pour céllules
+				}
+				else
+				{
+					// on recup les types de déclenchements pour tiles
+				}
+				
+				// Essaie de recup liste pour le fireEventType donné (dans le cas d'un tile)
+				var trigList:Array = triggersProxy.getTriggerList(_target.ID, "click");
+				if (!trigList) return;
+				
+				for each (var t:Object in trigList)
+				{
+					addChild(TriggerBrowserListItem.create(t));
+					// addChild(createList(t));
+				}
+				
+				
+			}
+			// On est sur un trigger
+			else
+			{
+				// on recup les types de déclenchements pour triggers
+			}
+			
+		}
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------	
+	    
+		/**
+		 * 	Crée l'affichage depuis une source AbstractTile ou céllule
+		 *	@param target Object AbastractTile
+		 *	@param fireEvtType String
+		 */
+		private function createList (trigger:Object) : TriggerBrowserListItem
+		{
+			return null;
+			/*trace("createList", trigger);
+			// On crée la vue container
+			var classId:int = trigger.triggerClassId;
+			var bloc:TriggerBrowserListItem = editor.addForms[classId].createBrowserListItem(trigger);
+			
+			// On chope la liste des triggers enchaînés
+			var chained:Array = trigger.chainedTriggers;
+			if (chained)
+			{
+				for each (trigger in chained)
+					bloc.addChild(createList(trigger));
+			}
+			
+			return bloc;*/			
+
+			/*for each (var t:Object in trigList)
+					{
+						classId = t.triggerClassId;
+						trace(t, editor.addForms[classId]);
+						
+					}*/
+		}
+		
+		]]>
+	</mx:Script>
+	
+	
+	
+</mx:TitleWindow>
