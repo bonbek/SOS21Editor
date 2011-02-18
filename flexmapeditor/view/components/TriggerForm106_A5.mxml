@@ -82,7 +82,9 @@
 				rdAnimate.selected = true;
 				rdFrame.selected = false;
 				currentState = "animateOption";
-				loopCount = options.l ? options.l : 1;
+				if (options.l) loopCount = options.l;
+				else
+					loopCount = options.l = 1;
 			}
 			else {
 				rdFrame.selected = true;
