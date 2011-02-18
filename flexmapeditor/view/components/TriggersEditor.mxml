@@ -951,7 +951,7 @@
 			// on test si l'objet cliqué est le courant
 			currentTarget = event.target;
 			
-			triggerExplorer.target = currentTarget;
+//			triggerExplorer.target = currentTarget;
 			
 			/*var tile:Object = event.target;
 			
@@ -1557,7 +1557,7 @@
 			triggerExplorer = new TriggerExplorer();
 //			manager.add(triggerExplorer);
 			triggerExplorer.editor = this;
-			openExplorer().browse("all");
+			// openExplorer().browse("all");
 			
 			//
 			onAdd();
