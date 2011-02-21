@@ -2074,7 +2074,7 @@
 		</mx:State>
 	</mx:states>
 	<mx:HBox width="100%">
-		<mx:Label width="52%" text="selectionez une cible" id="clbCurrentTarget" truncateToFit="true" />
+		<mx:Label width="180" text="selectionez une cible" id="clbCurrentTarget" truncateToFit="true" />
 		<mx:ComboBox id="cbEditedDomain" selectedIndex="{editedDomain}" change="{editedDomain=cbEditedDomain.selectedIndex}">
 			<mx:dataProvider>
 				<mx:Object label="global" data="0" />
