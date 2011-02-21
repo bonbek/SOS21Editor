@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
 	width="100%" height="100%"
-	remove="onRemove()"
-	creationComplete="onCreationComplete();">
+	remove="onRemove()">
 
 	<!-- Copyright 2009 toffer. -->
 	
@@ -84,18 +83,35 @@
 		[Bindable]
 		public function set trigger(t:Object):void
 		{
-			if (_trigger)
-			{
-				onRemove();
-			}
-			
-			_trigger = t;
-			if (!firstInit) {
-				onCreationComplete()
-			}
-			else {
+			if (firstInit) {
+				_init();
 				firstInit = false;
 			}
+			else {
+				if (_trigger)
+				{
+					onRemove();
+				}
+				_trigger = t;
+				// clean dataProvider
+				dpActions.removeAll();
+				// maj
+				var args:Object = _trigger.arguments;
+				if ("act" in args)
+					dpActions.source = args["act"].slice();
+
+				if ("lp" in args)
+				{
+					ckLoop.selected = args["lp"] != 1;
+					nsLoop.value = args["lp"];
+				}
+				else {
+					nsLoop.value = 1
+					ckLoop.selected = false;
+					updateOnSave();
+				}	
+			}
+			
 		}
 		
 		public function get trigger():Object {
@@ -141,6 +157,8 @@
 		 */
 		public function updateOnSave () : void
 		{
+			if (!_trigger) return;
+
 			var nl:Array = [];
 			var ob:Object;
 			for each (var it:Object in dpActions)
@@ -520,7 +538,7 @@
 		 *	@private
 		 * 	Première initialisation
 		 */
-		private function onCreationComplete () : void
+		private function _init () : void
 		{
 			// Formullaires de options par action
 			optionPop0 = new TriggerForm106_A0;
@@ -534,24 +552,6 @@
 			optionPop0.proxy = optionPop1.proxy = optionPop3.proxy = optionPop4.proxy = optionPop5.proxy = optionPop6.proxy = this;
 			optionPop0.x = optionPop1.x = optionPop3.x = optionPop4.x = optionPop5.x = optionPop6.x = 500;
 			optionPop0.y = optionPop1.y = optionPop3.y = optionPop4.y = optionPop5.y = optionPop5.y = 200;
-
-			// clean dataProvider
-			dpActions.removeAll();
-			// maj
-			var args:Object = _trigger.arguments;
-			if ("act" in args)
-				dpActions.source = args["act"].slice();
-			
-			if ("lp" in args)
-			{
-				ckLoop.selected = args["lp"] != 1;
-				nsLoop.value = args["lp"];
-			}
-			else {
-				nsLoop.value = 1
-				ckLoop.selected = false;
-				updateOnSave();
-			}	
 		}
 		
 		//---------------------------------------
