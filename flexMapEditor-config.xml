@@ -23,6 +23,7 @@
 			<!-- logger -->
 			<path-element>/Users/toffer/CodeLib/AS3/luminicbox/</path-element>
 			<path-element>../../lib/src/</path-element>
+			<path-element>../lib/</path-element>
 			<!-- data structures -->
 			<path-element>/Users/toffer/CodeLib/AS3/as3ds_1/src/</path-element>
 			<!-- tween
