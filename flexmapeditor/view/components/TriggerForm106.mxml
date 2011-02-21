@@ -507,9 +507,13 @@
 		 */
 		private function onRemove () : void
 		{
-			disposePreview();
-			disposeOptions();
-			dgActions.selectedItem = null;
+			// Check si le composant à été init
+			if (optionPop0)
+			{
+				disposePreview();
+				disposeOptions();
+				dgActions.selectedItem = null;
+			}
 		}
 		
 		/**
