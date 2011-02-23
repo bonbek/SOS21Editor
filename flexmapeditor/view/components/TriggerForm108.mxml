@@ -8,7 +8,7 @@
 	<mx:Script>
 	    <![CDATA[
 		
-		import mx.events.FlexEvent;
+		import flexmapeditor.vo.TriggerProperties;
 		
 		/**
 		 *	Formulaire additionnel pour triggers type jouer un son
@@ -78,7 +78,7 @@
 		 */
 		public function getSarfeArguments():Array
 		{
-			return ["sf","lp", "sp", "spr", "vol"];
+			return ["sf","lp", "sp", "spr", "vol", "ts"];
 		}
 		
 		/**
@@ -117,6 +117,13 @@
 			_trigger.arguments["lp"] = nsLoop.value;
 			_trigger.arguments["vol"] = nsVolume.value / 100;
 			_trigger.arguments["spr"] = nsSpatialRadius.value;
+			
+			var atrig:Array = [];
+			for each (var t:Object in dgTrigStopper.dataProvider)
+				atrig.push(t.id);
+			if (atrig.length > 0) _trigger.arguments["ts"] = atrig;
+			else
+				delete _trigger.arguments["ts"];
 		}
 		
 		/**
@@ -331,6 +338,31 @@
 			else {
 				ckSpatial.selected = false;
 			}
+			
+			// Paramètre liste des triggers stoppant la lecture
+			if (dgTrigStopper.dataProvider) dgTrigStopper.dataProvider.removeAll();
+			else
+				dgTrigStopper.dataProvider = [];
+			if ("ts" in args)
+			{
+				var t:Object; 	// objet trigger
+				var tt:String;	// intitulé trigger
+				var s:Object;	// intitulé source
+				var it:Object;
+				for each (var st:int in args["ts"])
+				{
+					t = parentApplication.triggerEditor.getTrigger(st);
+					if (!t) continue;
+
+					it = {};
+					tt = TriggerProperties.triggerClasses[t.triggerClassId];
+					it.id = t.id;
+					it.title = tt;
+					t = isosceneHelper.getTile(t.refId);
+					it.source = t ? t.name + " (id:" + t.ID + ")" : "aucune";
+					dgTrigStopper.dataProvider.addItem(it);
+				}
+			}
 		}
 
 	    ]]>
@@ -346,12 +378,27 @@
 	</mx:HBox>
 	<mx:HBox width="100%">
 		<mx:CheckBox id="ckSpatial" label="Spatial" change="onModifySpatialOption(event);"  />
+		<mx:Label text="taille zone d'atténuation" />
 		<mx:NumericStepper id="nsSpatialRadius" maximum="100" value="2" enabled="{ckSpatial.selected}"
 			change="updateOnSave();" click="showSpatialRadius();" />
 	</mx:HBox>
 	<mx:HBox width="100%" enabled="{ckSpatial.selected}">
 		<mx:CheckBox id="ckSpatialTarget" label="Definir source" change="onModifySpatialOption(event);"  />
-		<mx:Button id="btSpatialTarget" enabled="{ckSpatialTarget.selected}" toggle="true"
+		<mx:Button id="btSpatialTarget" width="100%" enabled="{ckSpatialTarget.selected}" toggle="true"
 			change="onModifySpatialOption(event);" />
 	</mx:HBox>
+	<mx:HBox width="100%">
+		<mx:Label text="Liste des action(s) stoppant la lecture" />
+		<mx:Button id="btRemTrigStopper" label="x" width="30" toolTip="supprimer entrée"
+			click="dgTrigStopper.dataProvider.removeItemAt(dgTrigStopper.selectedIndex);updateOnSave()" />
+	</mx:HBox>
+	<mx:DataGrid id="dgTrigStopper" width="99%" headerHeight="0" rowCount="3"
+				editable="false" dropEnabled="true" sortableColumns="false"
+				change="updateOnSave();">
+        <mx:columns>
+            <mx:DataGridColumn width="20" dataField="id" headerText="id"/>
+			<mx:DataGridColumn width="100" dataField="title" headerText="action"/>
+			<mx:DataGridColumn width="100" dataField="source" headerText="source"/>			
+        </mx:columns>
+    </mx:DataGrid>
 </mx:VBox>
