@@ -464,7 +464,11 @@
 			switch(event.item.id)
 			{
 				case "add" :
-					var t:String = sAction ? sAction.t : _trigger.refId;
+					var t:String;
+					if (_trigger) t = _trigger.refId;
+					else if (sAction)
+						t = sAction.t
+
 					var entry:Object = {t:t, a:1, d:0, we:1, p:{}};
 					if (sAction) {
 						var nind:int = dgActions.selectedIndex + 1;
