@@ -309,10 +309,10 @@
 	<mx:Box width="100%" enabled="{dgVars.selectedItem!=null}">
 		<mx:ComboBox id="cbMethod" width="100%" dataProvider="{dpMethods}"
 			change="onEditItem(event)" />
-		<fx:EnvSelector id="esKey" width="100%" editMode="assist" modeSwitcher="false"
+		<fx:EnvSelector id="esKey" width="100%" height="20" editMode="assist" modeSwitcher="false"
 			change="onEditItem(event)" />
 		<mx:Label id="lbPref" text="" fontWeight="bold" />
-		<fx:EnvSelector id="esVal" width="100%" editMode="hand" modeSwitcher="true"
+		<fx:EnvSelector id="esVal" width="100%" height="20" editMode="hand" modeSwitcher="true"
 			change="onEditItem(event)" />		
 	</mx:Box>
 
