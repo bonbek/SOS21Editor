@@ -1246,31 +1246,18 @@
 				}
 				case "compRemTrigger" : // clique sur bt suppression du trigger de l'enchainement
 				{
-					// trigger sélectionné dans la liste
-					torem = cliChainedTriggers.selectedItem.data;
-					if (torem)
+					// trigger sélectionné dans la liste des chainages
+					if (cliChainedTriggers.selectedItem)
 					{
-						// suppression dans la liste tous le triggers
-						n = dpAllTriggers.length;
-						while (--n > -1)
+						torem = cliChainedTriggers.selectedItem.data;
+						// parent du trigger chaîné
+						var prent:Object = cliTargetTriggers.selectedItem.data;
+						if (prent && torem)
 						{
-							if (dpAllTriggers.getItemAt(n).data == torem)
-							{
-								dpAllTriggers.removeItemAt(n);
-								break;
-							}
+							// suppession chainage du parent
+							prent.removeChainedTrigger(torem);
+							updateForm(prent, true);
 						}
-						
-						addForms[torem.triggerClassId].onDeleteTrigger(torem);
-						// on supprime le trigger du proxy
-						triggersProxy.removeTrigger(torem.id);
-						
-						var toupd:Object = cliTargetTriggers.selectedItem;
-						if (toupd)
-						{
-							updateForm(toupd.data, true);
-							refreshTriggerList([toupd.data]);
-						}						
 					}
 					break;
 				}
@@ -1315,7 +1302,7 @@
 						{
 							if (dpttriggers[n].data == ttorem)
 							{
-								trace("TRIGGER DANS LA LISTE");
+								// trace("TRIGGER DANS LA LISTE");
 								updForm = true;
 								break;
 							}
@@ -2140,6 +2127,7 @@
 					
 			<mx:HBox>
 				<mx:Label text="enchaînées :" id="tx_complete" />
+				<!-- bar de boutons editer / ajouter / supprimer triggers chaînés -->
 			    <mx:ButtonBar id="buttonBarEAR" itemClick="buttonBarsHandler(event)"
 							buttonHeight="20" buttonWidth="20" horizontalAlign="center"
 							direction="horizontal" horizontalGap="0" verticalAlign="middle" verticalGap="0"
@@ -2147,8 +2135,7 @@
 			</mx:HBox>
 				<!-- liste des triggers chaînés -->
 				<mx:List id="cliChainedTriggers" width="100%" height="50" dataProvider="{dtChainedTriggers}"
-							dataTipField="data" labelField="title" dragEnabled="true" dropEnabled="true" dragMoveEnabled="true" />
-				<!-- bar de boutons editer / ajouter / supprimer triggers chaînés -->
+							dataTipField="data" labelField="title" dragEnabled="true" dropEnabled="true" dragMoveEnabled="true" />				
 
 		</mx:VBox>
 	</mx:HBox>
