@@ -638,6 +638,7 @@
 					ser.push(t2.maxFireCount);
 				}					
 				// TODO check sur changement nombre executions
+
 				// on retrouve les arguments modifiés
 				var sargs:Array = ppp.oform[ppp.oform.currentState].getSarfeArguments();
 				var v1:*;
@@ -645,15 +646,15 @@
 				for each (var ar:String in sargs)
 				{
 					// test si l'argument existe dans le trigger originel
-					if (ar in t1.arguments)
+					/*if (ar in t1.arguments)
 					{ 
 						v1 = t1.arguments[ar];
 						v2 = t2.arguments[ar];
 						if (v1 == v2 || !v2 || v2 == undefined) {
 							continue;
 						}
-					}
-					
+					}*/
+					v2 = t2.arguments[ar];
 					if (ar in t2.arguments)
 					{
 //						trace("OVERRIDE", ar, v2);
