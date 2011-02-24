@@ -1677,7 +1677,7 @@
 				}
 			}
 			
-			var safeArgrs:Array = formSafeArgrs.concat(["slid", "fireCount", "onComplete", "passArgs", "passVals", "_ovT", "_mb", "pload", "_sb"]);
+			var safeArgrs:Array = formSafeArgrs.concat(["slid", "fireCount", "onComplete", "passArgs", "passVals", "_ovT", "_mb", "pload", "_sb", "_fs"]);
 			
 			var args:Dictionary = tr.arguments;
 			//

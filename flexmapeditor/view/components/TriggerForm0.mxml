@@ -150,7 +150,10 @@
 				}				
 			}
 						
-
+			// Option freeze scene
+			if (t.arguments["_fs"]) ckbFreezeScene.selected = true;
+			else
+				ckbFreezeScene.selected = false;
 			
 			// TODO mise à jour de la liste des actions modifiées
 			ovT = [];
@@ -314,6 +317,17 @@
 			if (e.target.selected) trigger.arguments["_sb"] = 1;
 			else
 				delete trigger.arguments["_sb"];
+		}
+		
+		/**
+		 *  Changement propriété Freeze scene
+		 *	@param e Event
+		 */
+		private function freezeSceneOption (e:Event) : void
+		{
+			if (e.target.selected) trigger.arguments["_fs"] = 1;
+			else
+				delete trigger.arguments["_fs"];
 		}
 		
 		/**
@@ -778,17 +792,21 @@
 			toggle="true" enabled="{!btFromM.selected}"
 			click="btnEditFromNotFromMHandler(event)" />
 	</mx:HBox>
-	<mx:HBox>
+	<mx:HBox width="100%" verticalAlign="middle" horizontalGap="14">
+		<!-- <mx:Spacer width="30" /> -->
+		
+		<!-- lien symbolique -->
+		<mx:CheckBox id="ckbSymlink" label="Lien" change="cliSymlinkHandler(event);" />
+		<!-- lien symbolique -->
+		<mx:CheckBox id="ckbFreezeScene" label="Gèle int. scene"
+			toolTip="Gèle les intercations souris dans la scène durant l'execution de cette action"
+			change="freezeSceneOption(event);" />
 		<!-- Nombre d'exections -->
-		<mx:Label text="nbr max d'execution(s)" />
-		<mx:TextInput id="ti_maxFireCount" toolTip="Nombre d'executions maximum (laisser vide pour indéfiniment)"
+		<mx:Label text="Max exec" toolTip="Nombre de fois que l'action pourra être executée"/>
+		<mx:TextInput id="ti_maxFireCount" toolTip="nombre de fois que l'action pourra être executée (laisser vide pour indéfiniment)"
 						restrict="0-9" width="25"
 						text="{trigger.maxFireCount != int.MAX_VALUE ? trigger.maxFireCount : ''}"
 						change="trigger.maxFireCount = ti_maxFireCount.text.length > 0 ? int(ti_maxFireCount.text) : -1;" />
-		<mx:Spacer width="30" />
-		
-		<!-- lien symbolique -->
-		<mx:CheckBox id="ckbSymlink" label="lien symbolique" change="cliSymlinkHandler(event);" />
 	</mx:HBox>
 	
 	<!-- Deplacer bob -->
