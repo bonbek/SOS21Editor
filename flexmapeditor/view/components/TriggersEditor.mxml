@@ -105,7 +105,7 @@
 		// dp liste des actions (triggers)
 		[Bindable]
 		public var dtTriggerTypes:ArrayCollection = new ArrayCollection([
-										{label:"", data:0},
+										{label:"action blanche", data:0},
 										{label:"bonus joueur", data:103},
 										{label:"changer de scene", data:1},
 										{label:"déplacer un tile", data:6},
@@ -1513,7 +1513,7 @@
 			// id's / intitulés des classes de triggers
 			var tra:Array = [];
 			// id's / intitulés des classes de triggers
-			tra[0] = "non définie";
+			tra[0] = "action blanche";
 			tra[1] = "changer de scene";
 			tra[2] = "lien/mailto/fichier";
 			tra[3] = "quiz's";
