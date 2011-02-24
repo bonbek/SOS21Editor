@@ -31,8 +31,9 @@
 		import flash.events.MouseEvent;
 		import flash.net.NetConnection;
 		import flash.net.ObjectEncoding;
-		import flash.net.Responder;
+		import flash.net.*;
 		import flash.system.Security;
+		import flash.text.Font;
 		
 		import ddgame.client.proxy.ProxyList;
 		import ddgame.client.view.HelperList;
@@ -58,6 +59,12 @@
 		//---------------------------------------
 		// PRIVATE VARIABLES
 		//---------------------------------------
+		
+		// font ui normal
+		[Embed(source="assets/Verdana.ttf", fontName="Verdana", fontWeight="normal", mimeType="application/x-font-truetype")]		
+		public static var uiFont:Class;
+		
+		Font.registerFont(uiFont);
 		
 		// popup en cours
 		private var currentPopup:Object;
@@ -464,7 +471,6 @@
 			
 			// ecoute selection dans menu
 			menuBar.addEventListener(MenuEvent.ITEM_CLICK, menuBarHandler, false, 100, true);
-			
 			focusManager.deactivate();
 		}
 		
