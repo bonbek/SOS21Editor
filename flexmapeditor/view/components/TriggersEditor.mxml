@@ -1351,7 +1351,6 @@
 			{
 				var item:Object = dgAllTriggersList.selectedItem;
 				var col:DataGridColumn = dgAllTriggersList.columns[event.columnIndex];
-				trace("Edit", col.dataField);
 				switch (col.dataField)
 				{
 					case "label" :
@@ -1359,6 +1358,8 @@
 						break;
 					case "source" :
 						item.data.refId = Object(dgAllTriggersList.itemEditorInstance).text;
+						dgAllTriggersList.destroyItemEditor();
+						refreshTriggerList([item.data]);
 						break;
 				}
 			}
@@ -2074,7 +2075,7 @@
 				        <mx:columns>
 							<mx:DataGridColumn width="40" dataField="id" headerText="id" editable="false" />
 							<mx:DataGridColumn width="80" dataField="firetype" headerText="déclencheur" editable="false" />
-				            <mx:DataGridColumn dataField="source" width="140" headerText="source" editable="false" />
+				            <mx:DataGridColumn dataField="source" width="140" headerText="source" editable="true" />
 				            <mx:DataGridColumn dataField="label" headerText="titre" editable="true" />
 							<mx:DataGridColumn dataField="title" width="120" headerText="action" editable="false" />
 							<mx:DataGridColumn dataField="chained" width="70" headerText="chainage" editable="false" />
