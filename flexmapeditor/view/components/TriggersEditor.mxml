@@ -637,7 +637,7 @@
 					var refObj:Object = parentApplication.isosceneHelper.getTile(refId);
 					if (refObj) stype = refObj.name + " (id:" + refId + ")";
 					else
-						stype = "tile";
+						stype = "aucune";
 				}
 			} else {
 				stype = "aucune";
@@ -1357,9 +1357,18 @@
 						item.data.title = Object(dgAllTriggersList.itemEditorInstance).text;
 						break;
 					case "source" :
-						item.data.refId = Object(dgAllTriggersList.itemEditorInstance).text;
-						dgAllTriggersList.destroyItemEditor();
-						refreshTriggerList([item.data]);
+						var oldDes:String = getSourceDescription(item.data);
+						var newSource:String = Object(dgAllTriggersList.itemEditorInstance).text;
+						if (newSource != oldDes)
+						{
+							item.data.refId = newSource;
+							// Force la ref à null si la source passée n'existe pas
+							if (newSource != "null" && getSourceDescription(item.data) == "aucune") {
+								item.data.refId = "null";
+							}
+							dgAllTriggersList.destroyItemEditor();
+							refreshTriggerList([item.data]);							
+						}
 						break;
 				}
 			}
