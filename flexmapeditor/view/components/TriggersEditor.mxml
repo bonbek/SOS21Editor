@@ -1108,6 +1108,25 @@
 		}
 		
 		/**
+		 *  
+		 *	@private
+		 */
+		private function editAllTriggerListSelectedItem () : void
+		{
+			if (dgAllTriggersList.selectedItem)
+			{
+				var tp:Object = dgAllTriggersList.selectedItem.data;
+				if (tp.refId != "null") {
+					updateForm(tp, true, true);
+					selectTargetOfCurrentTrigger();
+				}
+				else {
+					updateForm(tp, true);
+				}
+			}
+		}
+		
+		/**
 		 *	Réception des events pour les bars de boutons
 		 *	éditer / ajouter / supprimer action
 		 *  
@@ -1257,7 +1276,8 @@
 				}
 				case "allEdTrigger": // clique bt edit dans la liste de tous les triggers
 				{
-					if (dgAllTriggersList.selectedItem)
+					editAllTriggerListSelectedItem();
+					/*if (dgAllTriggersList.selectedItem)
 					{
 						tp = dgAllTriggersList.selectedItem.data;
 						if (tp.refId != "null") {
@@ -1266,9 +1286,7 @@
 						} else {
 							updateForm(tp, true);
 						}
-							
-//						selectTargetOfCurrentTrigger();
-					}
+					}*/
 					break;
 				}
 				case "allAddTrigger" : // clique sur bt ajout d'un trigger dans la liste tous les triggers
@@ -2051,7 +2069,8 @@
 			<mx:AddChild relativeTo="{parentApplication.optionBox}">
 				<mx:HBox id="testm" width="100%">
 					<mx:DataGrid id="dgAllTriggersList" width="100%" editable="true" 
-									dataProvider="{dpAllTriggers}" dragEnabled="true" itemEditEnd="onEditTrigger(event);">
+									dataProvider="{dpAllTriggers}" dragEnabled="true" itemEditEnd="onEditTrigger(event);"
+									doubleClickEnabled="true" itemDoubleClick="editAllTriggerListSelectedItem();">
 				        <mx:columns>
 							<mx:DataGridColumn width="40" dataField="id" headerText="id" editable="false" />
 							<mx:DataGridColumn width="80" dataField="firetype" headerText="déclencheur" editable="false" />
