@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%" creationComplete="onCreationComplete()">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		/**
+		 *	Formulaire additionnel pour option commune Bonus
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+
+		private var _trigger:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		[Bindable]
+		public function get trigger () : Object
+		{ return _trigger; }		
+
+		public function set trigger (t:Object) : void
+		{
+			_trigger = t;
+			updateDisplay();
+		}		
+
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function save () : void
+		{
+			// Check si on à des bonus
+			if (ti_lev.value + ti_pir.value + ti_soc.value + ti_eco.value + ti_env.value == 0)
+			{
+				delete _trigger.arguments["completeBonus"];
+				return;
+			}
+			
+			// Update
+			var args:Object = _trigger.arguments["completeBonus"];			
+			if (!args) args = _trigger.arguments["completeBonus"] = {};
+
+			// > points piraniak
+			if (ti_lev.value) args["plev"] = ti_lev.value;
+			else
+				delete args["plev"];
+			// > points piraniak
+			if (ti_pir.value) args["ppir"] = ti_pir.value;
+			else
+				delete args["ppir"];				
+			// > points social
+			if (ti_soc.value) args["psoc"] = ti_soc.value;
+			else
+				delete args["psoc"];				
+			// > points economie
+			if (ti_eco.value) args["peco"] = ti_eco.value;
+			else
+				delete args["peco"];				
+			// > points envionnement
+			if (ti_env.value) args["penv"] = ti_env.value;
+			else
+				delete args["penv"];			
+				
+		}
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------
+
+		/**
+		 *	@private
+		 * 	Mise à jour affichage
+		 */
+		private function updateDisplay () : void
+		{
+			// Reset des champs
+			ti_lev.value = 0;
+			ti_pir.value = 0;
+			ti_soc.value = 0;
+			ti_eco.value = 0;
+			ti_env.value = 0;
+
+			if (!_trigger) return;
+			
+			var args:Object = _trigger.arguments["completeBonus"];
+			if (args)
+			{
+				if ("plev" in args)
+					ti_lev.value = args["plev"];
+				if ("ppir" in args)
+					ti_pir.value = args["ppir"];
+				if ("psoc" in args)
+					ti_soc.value = args["psoc"];
+				if ("peco" in args)
+					ti_eco.value = args["peco"];
+				if ("penv" in args)
+					ti_env.value = args["penv"];			
+			}
+		}
+		
+		/**
+		 *	@private
+		 */
+		private function onCreationComplete () : void
+		{
+			// le trigger à pu être passé alors que cette instance
+			// n'à pas encore été affichée
+			if (_trigger) updateDisplay();
+		}	
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="bonus points action complétée : " />
+	<mx:HBox>
+		<mx:Box>
+			<mx:Label text="Niv." truncateToFit="true" />
+			<mx:NumericStepper id="ti_lev" minimum="-10000" maximum="10000" change="save();" width="60" />
+		</mx:Box>
+		<mx:Box>
+			<mx:Label text="Pir." truncateToFit="true" />
+			<mx:NumericStepper id="ti_pir" minimum="-10000" maximum="10000" change="save();" width="60" />
+		</mx:Box>
+		<mx:Box>
+			<mx:Label text="Soc." truncateToFit="true" />
+			<mx:NumericStepper id="ti_soc" minimum="-10000" maximum="10000" change="save();" width="60" />
+		</mx:Box>
+		<mx:Box>
+			<mx:Label text="Eco." truncateToFit="true" />			
+			<mx:NumericStepper id="ti_eco" minimum="-10000" maximum="10000" change="save();" width="60" />
+		</mx:Box>
+		<mx:Box>
+			<mx:Label text="Env.	" truncateToFit="true" />
+			<mx:NumericStepper id="ti_env" minimum="-10000" maximum="10000" change="save();" width="60" />						
+		</mx:Box>
+	</mx:HBox>
+
+</mx:Box>

@@ -889,7 +889,10 @@
 		        </mx:columns>
 		    </mx:DataGrid>
 		</mx:Box>
+		<!-- Option Ecrire variables -->
 		<fmecomp:TriggerForm0WriteEnv label="Variables" trigger="{trigger}" />
+		<!-- Option Bonus -->
+		<fmecomp:TriggerForm0Bonus label="Bonus" trigger="{trigger}" />
 	</mx:TabNavigator>
 	
 </mx:Box>
