@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mx:Box xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"
+		xmlns:fmecomp="flexmapeditor.view.components.*"
 		xmlns:fx="flexmapeditor.view.components.renderer.*">
 
 	<!-- Copyright 2010 toffer. -->
@@ -888,6 +889,7 @@
 		        </mx:columns>
 		    </mx:DataGrid>
 		</mx:Box>
+		<fmecomp:TriggerForm0WriteEnv label="Variables" trigger="{trigger}" />
 	</mx:TabNavigator>
 	
 </mx:Box>

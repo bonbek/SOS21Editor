@@ -1677,7 +1677,7 @@
 				}
 			}
 			
-			var safeArgrs:Array = formSafeArgrs.concat(["slid", "fireCount", "onComplete", "passArgs", "passVals", "_ovT", "_mb", "pload", "_sb", "_fs"]);
+			var safeArgrs:Array = formSafeArgrs.concat(["slid", "fireCount", "onComplete", "passArgs", "passVals", "_ovT", "_mb", "pload", "_sb", "_fs", "_wv"]);
 			
 			var args:Dictionary = tr.arguments;
 			//
@@ -2141,7 +2141,7 @@
 	</mx:HBox>
 	
 	<mx:TabNavigator id="tn_triggerOpts" width="100%" height="100%" paddingLeft="10" paddingTop="10" paddingRight="10" paddingBottom="10"  backgroundColor="#F7F7F7"
-		change="onTabChange()" enabled="{currentTrigger!=null}">
+		change="onTabChange()" enabled="{currentTrigger!=null}" verticalScrollPolicy="off">
 		<!-- 
 			Onglet conteneur formaulaire additionnel
 		-->
@@ -2150,8 +2150,8 @@
 		<!-- 
 			Onglet Options communes
 		-->
-		<mx:Box width="100%" label="options génériques">
-			<flmp:TriggerForm0 id="comAddForm" proxy="{this}" />
+		<mx:Box width="100%" label="options génériques" verticalScrollPolicy="off">
+			<flmp:TriggerForm0 id="comAddForm" proxy="{this}" verticalScrollPolicy="off" />
 		</mx:Box>
 		<!-- 
 			Onglet Conditions

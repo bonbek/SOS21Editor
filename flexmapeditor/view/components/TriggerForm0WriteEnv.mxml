@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:fx="flexmapeditor.view.components.*"
+	width="100%" height="100%">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.collections.ArrayCollection;
+		import mx.controls.dataGridClasses.DataGridColumn;
+		import mx.events.ItemClickEvent;
+		import flexmapeditor.view.components.renderer.ConditionItemRenderer;
+		
+		/**
+		 *	Formulaire additionnel pour option commune
+		 *  des trigger : écrire variables
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		private var nullMethod:Boolean;
+		private var keySelector:Object;
+		private var valSelector:Object;
+		
+		[Embed("icons/textfield_add.png")]
+		public var addIcon:Class;
+		[Embed("icons/textfield_delete.png")]
+		public var deleteIcon:Class;
+		[Embed("icons/arrow_up.png")]
+		public var arrowUpIcon:Class;
+		[Embed("icons/arrow_down.png")]
+		public var arrowDownIcon:Class;
+		
+		[Bindable]
+		public var dpButtonBar:Array = [	{ icon:addIcon, toolTip:"ajouter une entrée", id:"add" },
+											{ icon:deleteIcon, toolTip:"supprimer l'entrée selectionée", id:"remove" },
+											{ icon:arrowUpIcon, toolTip:"déplacer", id:"up"},
+											{ icon:arrowDownIcon, toolTip:"déplacer", id:"down"} ];		
+		
+		[Bindable]
+		private var dpMethods:Array = [	{label:"définir", data:null, pref:"à"},
+		 								{label:"ajouter", data:"add", pref:"à"},
+										{label:"soustraire", data:"sub", pref:"de"},
+										{label:"multiplier", data:"mul", pref:"par"},
+										{label:"diviser", data:"div", pref:"par"}	];
+		
+		[Bindable]
+		private var dpVars:ArrayCollection = new ArrayCollection();
+				
+		// -------
+		// trigger en pris en charge par cette instance
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger (t:Object) : void
+		{
+			if (!t) return;
+
+			_trigger = t;
+			// clean dataProvider
+			dpVars.removeAll();
+			// maj
+			var args:Object = _trigger.arguments;
+			if ("_wv" in args)
+				dpVars.source = args["_wv"].slice();
+		}
+		
+		public function get trigger () : Object
+		{ return _trigger; }
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave() : void
+		{
+			var nl:Array = [];
+			for each (var it:Object in dpVars)
+				nl.push({m:it.m, k:it.k, v:it.v});
+			
+			if (nl.length > 0) _trigger.arguments["_wv"] = nl;
+			else
+				delete _trigger.arguments["_wv"];
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		private function onEditItem (event:Event) : void
+		{
+			var item:Object = dgVars.selectedItem;
+			switch (event.target)
+			{
+				case cbMethod :
+					item.m = dpMethods[cbMethod.selectedIndex].data;
+					dpVars.itemUpdated(item);
+					updateLayout();	
+					break;
+				case esKey :
+					item.k = esKey.selector;
+					dpVars.itemUpdated(item);
+					break;
+				case esVal :
+					item.v = esVal.editMode == "hand" ? esVal.value : esVal.selector;
+					dpVars.itemUpdated(item);
+					break;
+			}
+
+			updateOnSave();
+		}
+		
+		private function onClickItem (event:Event) : void
+		{
+			var item:Object = dgVars.selectedItem;
+
+			var n:int = dpMethods.length;
+			var method:Object;
+			while (--n > -1)
+			{
+				if (dpMethods[n].data == item.m)
+				{
+					method = dpMethods[n];
+					break;
+				}
+			}
+
+			// maj combo
+			cbMethod.selectedIndex = n;
+			esKey.selector = item.k;
+			
+			if (esVal.selectorToLabel(item.v))
+			{
+				esVal.editMode = "assist";
+				esVal.selector = item.v;
+			}
+			else
+			{
+				esVal.editMode = "hand";
+				esVal.value = item.v;
+			}
+			
+			updateLayout();
+		}
+		
+		private function updateLayout () : void
+		{
+			var method:Object = dpMethods[cbMethod.selectedIndex];
+			// maj "préfixe"
+			lbPref.text = method.pref;
+			
+			var nc:int = esKey.parent.numChildren;
+			if (!method.data)
+			{
+				esKey.parent.addChildAt(esKey,1);
+				esVal.parent.addChildAt(esVal, nc);
+			}
+			else
+			{
+				esVal.parent.addChildAt(esVal,1);
+				esKey.parent.addChildAt(esKey, nc);
+			}
+		}
+		
+		/**
+		 * Réception edition des entrées dg actions
+		 *	@param event ItemClickEvent
+		 */
+		private function onEditEntrys (event:ItemClickEvent) : void
+		{
+			switch(event.item.id)
+			{
+				case "add" :
+					var entry:Object = {m:null, k:null, v:null};
+					dpVars.addItem(entry);
+					break;
+				case "remove" :
+					if (dgVars.selectedItem)
+					{
+						dpVars.removeItemAt(dgVars.selectedIndex);
+					}
+					break;
+				case "up" :
+					entry = dgVars.selectedItem;
+					if (entry)
+					{
+						var ind:int = dgVars.selectedIndex;
+						if (ind - 1 > -1)
+						{
+							dpVars.removeItemAt(ind);
+							dpVars.addItemAt(entry, --ind);
+							dgVars.selectedItem = entry;
+							dgVars.scrollToIndex(ind);
+						}							
+					}
+					break;
+				case "down" :
+					entry = dgVars.selectedItem;
+					if (entry)
+					{
+						ind = dgVars.selectedIndex;
+						if (ind + 1 < dpVars.length)
+						{
+							dpVars.removeItemAt(ind)
+							dpVars.addItemAt(entry, ++ind);
+							dgVars.selectedItem = entry;
+							dgVars.scrollToIndex(ind);
+						}
+							
+					}
+					break;
+			}
+			
+			updateOnSave();
+		}
+		
+		private function getMethodDescriptor (id:*) : Object
+		{
+			var method:Object;
+			if (id is String)
+			{
+				for each (method in dpMethods)
+					if (method.data == id) break;
+			}
+			else
+			{
+				method = dpMethods[0];
+			}
+			
+			
+			return method;
+		}
+		
+		private function labelFunction (item:Object) : String
+		{
+			var method:Object = getMethodDescriptor(item.m);
+			var label:String = method.label;
+			var val:String = esKey.selectorToLabel(item.v);
+			if (!val) val = item.v;
+			if (!method.data)
+				label += " <font color=\"#8A47A6\">" + esKey.selectorToLabel(item.k) + "</font> " + method.pref + " <font color=\"#8A47A6\">" + val + "</font>";
+			else
+				label += " <font color=\"#8A47A6\">" + val + "</font> " + method.pref + " <font color=\"#8A47A6\">" + esKey.selectorToLabel(item.k) + "</font>";
+			
+			item.label = label;
+			return label;
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:ButtonBar id="buttonBar"
+		direction="horizontal" buttonHeight="20" buttonWidth="20"
+		horizontalAlign="center" verticalAlign="middle"				
+		horizontalGap="6" verticalGap="0" focusEnabled="false"
+		dataProvider="{dpButtonBar}" itemClick="onEditEntrys(event)" />
+	
+	<mx:List id="dgVars" dataProvider="{dpVars}" width="99%" rowCount="3"
+		showDataTips="true"
+		itemRenderer="flexmapeditor.view.components.renderer.ConditionItemRenderer"
+ 		itemClick="onClickItem(event)" labelFunction="labelFunction" />
+
+	<mx:Box width="100%" enabled="{dgVars.selectedItem!=null}">
+		<mx:ComboBox id="cbMethod" width="100%" dataProvider="{dpMethods}"
+			change="onEditItem(event)" />
+		<fx:EnvSelector id="esKey" width="100%" height="20" editMode="assist" modeSwitcher="false"
+			change="onEditItem(event)" />
+		<mx:Label id="lbPref" text="" fontWeight="bold" />
+		<fx:EnvSelector id="esVal" width="100%" height="20" editMode="hand" modeSwitcher="true"
+			change="onEditItem(event)" />		
+	</mx:Box>
+
+</mx:Box>
