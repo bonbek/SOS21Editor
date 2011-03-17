@@ -34,6 +34,7 @@
 		import flash.net.*;
 		import flash.system.Security;
 		import flash.text.Font;
+		import flash.system.LoaderContext;
 		
 		import br.com.stimuli.loading.BulkLoader;
 		
@@ -446,14 +447,22 @@
 			{
 				// > config chargée
 				case "conf" :
-					preloadState = "app"
-					loader.add("core.swf", {id:"core"});
+					preloadState = "app";
+					// contexte du chargement
+					var context:LoaderContext = new LoaderContext();
+					context.applicationDomain = ApplicationDomain.currentDomain;
+					// core
+					loader.add("core.swf", {id:"core", preventCache:true, context:context});
+					// clientServer
+					var conf:XML = loader.getXML("config");
+					loader.add(String(conf.services.mod[0]), {id:"clientServer", preventCache:true, context:context});
 					loader.start();
 					break;
 				// > core chargé
 				case "app" :
-					_core = loader.getContent("core", true);
-					_core.startup(loader.getXML("config", true));
+					_core = loader.getContent("core");
+					var clientServer:Object = loader.getContent("clientServer");
+					_core.startup(loader.getXML("config"), clientServer);
 					_core.facade.publicChannel.addEventListener("appReady", onCoreInitialized, false, 0);
 					loader.removeEventListener(Event.COMPLETE, onPreloadComplete);
 					preloadState = null;
@@ -479,8 +488,11 @@
 			preloadState = "conf";
 			var vars:Object = Application.application.parameters;
 			// recup chargement config définit par une flashvar
-			var confFile:String = ("conf" in vars) ? vars.conf : "config.xml";		
-			loader.add(confFile, {id:"config"});
+			var confFile:String = ("conf" in vars) ? vars.conf : "config.xml";
+			// contexte du chargement
+			var context:LoaderContext = new LoaderContext();
+			context.applicationDomain = ApplicationDomain.currentDomain;	
+			loader.add(confFile, {id:"config", preventCache:true, context:context});
 			loader.addEventListener(Event.COMPLETE, onPreloadComplete);
 			loader.start();
 		}
