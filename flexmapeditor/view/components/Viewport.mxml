@@ -1,37 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
-	width="844" height="512"
-	title="ceci est un titre"
-	backgroundColor="#000000"
-	headerColors="[#FFFFFF, #FFFFFF]"
-	borderAlpha="1"
-	highlightAlphas="[0.0,0]"
-   	borderThicknessLeft="2"
-   	borderThicknessRight="2"
-   	borderThicknessTop="2" >
-	
-	<!-- 
-		conteneur affichage de la scène
-		charge le beta, clean l'affichage (suppression de l'ui)
-	-->
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" title="intitulé scène"
+	width="844" height="512" backgroundColor="#000000" headerColors="[#FFFFFF, #FFFFFF]"
+	borderAlpha="1" borderThicknessLeft="2" borderThicknessRight="2" borderThicknessTop="2" 
+	highlightAlphas="[0.0,0]">
 	
 	<mx:Script>
 	    <![CDATA[
 		
-		import mx.events.FlexEvent;
-		
-		import flash.net.*;
-		import flash.events.MouseEvent;
+		import flash.events.*;
+		import flash.geom.Rectangle;
+		import flash.display.*;
 		import flash.utils.getTimer;
-		import flash.display.DisplayObject;
-		import flash.display.DisplayObjectContainer;
-		import flash.events.KeyboardEvent;
 		
 		import ddgame.client.view.HelperList;
 		import ddgame.client.events.PublicIsoworldEventList;
 		
 		/**
-		 *	Description
+		 *	Conteneur affichage de la scène
 		 *
 		 *	@langversion ActionScript 3.0
 		 *	@playerversion Flash 9.0
@@ -40,33 +25,68 @@
 		 *	@since  2009-08-06
 		 */
 		
-		// le root de la beta
-		public var betaApp:Object;
+		
 		// le helper de la scene IsosceneHelper
-		public var isoSceneHelper:Object;	
-		
+		public var isoSceneHelper:Object;
+		// gestion double clique
 		private var tClick:int = 0;
-		
+		// flag activation mouse events dans scène
 		private var _isosceneListenersEnabled:Boolean = false;
+		// liste des objets cachés
 		private var _hiddenObjects:Array = [];
+		// obsolète
 		private var _wallsVisible:Boolean = true;
+		// ...
+		private var state:String;
 		
 		//---------------------------------------
 		// PUBLIC METHODS
 		//---------------------------------------
 		
-		public function set backgroundVisible(val:Boolean):void
+		/**
+		 * @private
+		 * Passage core
+		 */
+		public function set display (core:Object) : void
+		{
+			// stockage refs
+			isoSceneHelper = core.facade.getObserver(HelperList.ISOSCENE_HELPER);
+
+			// re-positionnement scène
+			isoSceneHelper.component.x = 0;
+			isoSceneHelper.component.y = 0;
+			
+			// ajout listener pour pan view
+			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+			core.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuildedHandler, false);
+			
+			// affichage
+			container.scrollRect = new Rectangle(0, 0, 840, 480);
+			container.addChild(core as DisplayObject);
+		}
+		
+		
+		/**
+		 * Flag fond affichage fond de la scène
+		 */
+		public function set backgroundVisible (val:Boolean) : void
 		{
 			if (!isoSceneHelper) return;
 			isoSceneHelper.component.backgroundLayer.visible = val;
 		}
 		
+		/**
+		 * Flag affichage premier plan de la scène
+		 */
 		public function set foregroundVisible(val:Boolean):void
 		{
 			if (!isoSceneHelper) return;
 			isoSceneHelper.component.foregroundLayer.visible = val;
 		}
 		
+		/**
+		 * Flag afficage des objets de la scène
+		 */
 		public function set tilesVisible(val:Boolean):void
 		{
 			if (!isoSceneHelper) return;
@@ -74,14 +94,13 @@
 		}
 		
 		/**
-		 * Afficher / masquer les objets
-		 * définis comme "cachés"
+		 * Flag affichage des objets définis comme "cachés"
 		 */
 		public function set showHiddenTiles (val:Boolean) : void
 		{
 			if (!isoSceneHelper) return;
 			
-			if (val) // affichage objet cachés
+			if (val) // affichage objets cachés
 			{
 				_hiddenObjects = [];
 				for each (var t:Object in tileList)
@@ -107,6 +126,9 @@
 			}			
 		}
 		
+		/**
+		 * TODO Obsolète, ne fonctione plus
+		 */
 		public function set wallsVisible (val:Boolean) : void
 		{
 			if (!isoSceneHelper || _wallsVisible == val) return;
@@ -123,19 +145,23 @@
 			}
 		}
 		
-		public function get tileList():Array {
+		/**
+		 * Retourne la liste des tiles de la scène
+		 */
+		public function get tileList() : Array
+		{
 			var t:Object = isoSceneHelper.getTile("bob");
-			if (t) return t.getTileList();
-			
-			return [];
+			return t ? t.getTileList() : [];
 		}
 		
-		public function set isosceneListenersEnabled(val:Boolean):void
+		/**
+		 * Flag interactions souris activées dans la scène
+		 */
+		public function set isosceneListenersEnabled (val:Boolean) : void
 		{
 			if (!isoSceneHelper) return;
 			
-			if (val)
-				isoSceneHelper.addListeners();
+			if (val) isoSceneHelper.addListeners();
 			else
 				isoSceneHelper.removeListeners();
 
@@ -146,6 +172,13 @@
 		// EVENT HANDLERS
 		//---------------------------------------
 		
+		/**
+		 *  Gestion cadrage affichage
+		 * 	Touche p enfoncée + déplacement souris avec btn gauche enfoncé
+		 *  pour recadrer l'affichage
+		 * 	Touche p enfoncée + double clique pour recentrer affichage
+		 *	@param event MouseEvent
+		 */
 		private function isosceneMousHandler(event:MouseEvent):void
 		{
 			event.stopImmediatePropagation();
@@ -155,11 +188,11 @@
 			{
 				case MouseEvent.MOUSE_DOWN :
 					var t:int = getTimer();
-					if (t - tClick < 600)
-					{
+					if (t - tClick < 600) {
 						isoSceneHelper.component.x = 0;
 						isoSceneHelper.component.y = 0;
-					} else {
+					}
+					else {
 						isoSceneHelper.component.startDrag();
 					}
 					tClick = t;
@@ -170,7 +203,11 @@
 			}
 		}
 		
-		
+		/**
+		 *  Gestion events clavier
+		 * 	Touche p enfoncée pour recadrer affichage
+		 *	@param event KeyboardEvent
+		 */
 		private function keyBoardHandler (event:KeyboardEvent) : void
 		{
 			var kc:uint = event.keyCode;
@@ -183,7 +220,8 @@
 					stage.addEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false, 0, true);
 					isoSceneHelper.component.addEventListener(MouseEvent.MOUSE_DOWN, isosceneMousHandler, true, 500, true);
 					isoSceneHelper.component.addEventListener(MouseEvent.MOUSE_UP, isosceneMousHandler, true, 500, true);
-				} else {
+				}
+				else {
 					stage.removeEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false);
 					stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
 					isoSceneHelper.component.removeEventListener(MouseEvent.MOUSE_DOWN, isosceneMousHandler, true);
@@ -192,7 +230,15 @@
 				}
 			}
 		}
+				
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
 		
+		/**
+		 *  Réception nouvelle scène construite
+		 *	@param event Event
+		 */
 		private function onSceneBuildedHandler(event:Event):void
 		{
 			var dt:Object = parentApplication.datamapProxy.getData();
@@ -210,77 +256,11 @@
 			if (_hiddenObjects) showHiddenTiles = true
 		}
 		
-		private function onApplicationInitialized (event:Event):void
-		{
-			betaApp.removeEventListener("applicationInitialized", onApplicationInitialized, false);
-			parentApplication.beta = betaApp;
-			// on s'abonne à la construction de la première scène
-			betaApp.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, cleanViewport, false, 500);
-		}
-		
-		/**
-		 *	Réception du chargement initial (beta + config)
-		 *	@param event Event
-		 */
-		private function loaderCompleteHandler (event:Event) : void
-		{
-			switch (event.target)
-			{
-				case container :
-				{
-					// on stock le root de la beta
-					betaApp = event.target.content;
-					// chargement config
-					var l:URLLoader = new URLLoader();
-					l.addEventListener(Event.COMPLETE, loaderCompleteHandler);
-					l.load(new URLRequest("config.xml"));					
-					break;
-				}
-				default :
-				{
-					event.target.removeEventListener(Event.COMPLETE, loaderCompleteHandler);
-					betaApp.addEventListener("applicationInitialized", onApplicationInitialized, false);
-					betaApp.startup(XML(event.target.data));
-					break;
-				}
-			}
-		}
-		
-		/**
-		 * Réception de l'affichage de la premierère map
-		 * On enleve l'ui et on recale l'affichage de la scène
-		 */
-		private function cleanViewport (event:Event = null) : void
-		{
-			betaApp.facade.publicChannel.removeEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, cleanViewport, false);
-
-			// on stack la ref au helper isoscene
-			isoSceneHelper = betaApp.facade.getObserver(HelperList.ISOSCENE_HELPER);
-			
-			// on passe la référence à l'appli
-//			parentApplication.beta = betaApp;
-//			parentApplication.setFacade(betaApp.facade);
-			
-			this.title = parentApplication.datamapProxy.title;
-			
-			// on supprime l'interface
-//			var uiHelper:Object = betaApp.facade.getObserver(HelperList.UI_HELPER);
-//			DisplayObjectContainer(betaApp).removeChild(DisplayObject(uiHelper.component));
-			
-			// on stock la référence du helper isoscene et on le recale
-			isoSceneHelper = betaApp.facade.getObserver(HelperList.ISOSCENE_HELPER);
-			isoSceneHelper.component.x = 0;
-			isoSceneHelper.component.y = 0;
-			
-			// ajout listener pour pan view
-			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
-			betaApp.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuildedHandler, false);
-		}
 		
 	    ]]>
 	</mx:Script>
-	
-	<mx:SWFLoader id="container" width="840" height="480" source="core.swf"
-		scaleContent="false" maintainAspectRatio="true" complete="loaderCompleteHandler(event)" />
+
+	<!-- conteneur affichage scène -->
+	<mx:UIComponent id="container" width="840" height="480" />
 
 </mx:Panel>

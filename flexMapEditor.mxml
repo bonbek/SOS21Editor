@@ -35,6 +35,8 @@
 		import flash.system.Security;
 		import flash.text.Font;
 		
+		import br.com.stimuli.loading.BulkLoader;
+		
 		import ddgame.client.proxy.ProxyList;
 		import ddgame.client.view.HelperList;
 		import ddgame.helper.HelperList;
@@ -70,6 +72,8 @@
 		private var currentPopup:Object;
 		// dernier état en cours
 		private var lastState:String = "editTriggers";
+		// état préload
+		private var preloadState:String;
 		
 		//---------------------------------------
 		// PUBLIC VARIABLES
@@ -78,8 +82,8 @@
 		// connection amfphp
 		private var _gateway:NetConnection;
 		private var _beta:Object;
-		// facade de la beta
-		public var facade:Object;
+		// _facade de la beta
+		private var _facade:Object;
 		
 		// TriggerProxy
 		public var triggersProxy:Object;
@@ -108,17 +112,8 @@
 		public function get beta () : Object
 		{ return _beta; }
 		
-		public function set beta (val:Object) : void
-		{
-			_beta = val;
-			_beta.facade.publicChannel.addEventListener("appReady", testMe, false, 0);
-			
-		}
-		
-		private function testMe (e:Event) : void
-		{
-			setFacade(_beta.facade);
-		}
+		public function get facade () : Object
+		{ return _facade; }
 		
 		public function get gateway () : NetConnection
 		{ return _gateway; }
@@ -130,66 +125,12 @@
 			return currentState == "preview";
 		}
 		
-		/**
-		 * @private
-		 * Passage référence à la Facade de la beta (voir Viewport.loaderCompleteHandler)
-		 * On fait un petit taf d'initialisation, arrêt des triggers, etc...
-		 */
-		public function setFacade (val:Object) : void
-		{
-			
-			facade = val;
-			
-			configProxy = facade.getProxy("configProxy");
-			// connection remoting
-			var rhost:String = configProxy.getContent("services_path");
-			_gateway = new NetConnection();
-			_gateway.objectEncoding = ObjectEncoding.AMF0;
-			_gateway.connect(rhost);
-			_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
-			
-			// stockage des refs
-			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY)
-			collisionGridProxy = facade.getProxy(ProxyList.COLLISIONGRID_PROXY);
-			datamapProxy = facade.getProxy(ProxyList.DATAMAP_PROXY);
-			playerProxy = facade.getProxy(ProxyList.PLAYER_PROXY);
-			triggersProxy = facade.getProxy(ProxyList.TRIGGERS_PROXY);
-			isosceneHelper = facade.getObserver(ddgame.client.view.HelperList.ISOSCENE_HELPER);
-			objectBuilderProxy = facade.getProxy(ProxyList.OBJECTBUILDER_PROXY);
-			envEditor = new EnvEditor;
-			envEditor.datamapProxy = datamapProxy;
-			envEditor.gateway = _gateway;
-			envEditor.playerProxy = playerProxy;
-			playerHelper = facade.getObserver(ddgame.client.view.HelperList.PLAYER_HELPER);
-			
-			playerProfil.playerProxy = playerProxy;
-			playerProfil.gateway = _gateway;
-			
-			
-			// on coupe les triggers
-			triggersProxy.triggersEnabled = false;
-			// on coupe le son
-			facade.getObserver(ddgame.helper.HelperList.AUDIO_HELPER).muteMusic();
-			
-			// on s'abonne à la construction des scènes
-//			facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 100, true);
-
-//			triggersProxy.channel.addEventListener("triggerExecute", preventTriggers);
-//			triggersProxy.channel.addEventListener("timer", preventTriggers);
-			
-			isosceneHelper.channel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 500, true);
-			// ecoute clavier
-			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
-	
-//			currentState = "editTriggers";
-		}
-		
 		//---------------------------------------
 		// PUBLIC METHODS
 		//---------------------------------------
 		
 		public function getHelper (name:String) : Object
-		{ return facade.getObserver(name); }
+		{ return _facade.getObserver(name); }
 		
 		/**
 		 *	Recharge la scène en cours
@@ -235,7 +176,6 @@
 		
 		private function onSceneBuilded (event:Event) : void
 		{
-			trace("ON SCENE BUILDED", this);
 			// on enleve les listeners de la scene iso
 			isosceneHelper.removeListeners();
 			if (lastState && previewMode == false)
@@ -447,31 +387,99 @@
 		}
 		
 		/**
-		 *	Réception application initialisée
-		 *  Mise en place du remoting
-		 *	@see mx.events.FlexEvent
+		 *  Réception core initialisé, l'appli est prète
+		 *	@param event Event
 		 */
-		private function onCreationComplete():void
+		private function onCoreInitialized (event:Event) : void
+		{
+			// récup _facade
+			_facade = _beta.facade;			
+			_facade.publicChannel.removeEventListener("appReady", onCoreInitialized, false);			
+			
+			configProxy = _facade.getProxy("configProxy");
+			// connection remoting
+			var rhost:String = configProxy.getContent("services_path");
+			_gateway = new NetConnection();
+			_gateway.objectEncoding = ObjectEncoding.AMF0;
+			_gateway.connect(rhost);
+			_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
+			
+			// stockage des refs
+			triggersProxy = _facade.getProxy(ProxyList.TRIGGERS_PROXY)
+			collisionGridProxy = _facade.getProxy(ProxyList.COLLISIONGRID_PROXY);
+			datamapProxy = _facade.getProxy(ProxyList.DATAMAP_PROXY);
+			playerProxy = _facade.getProxy(ProxyList.PLAYER_PROXY);
+			triggersProxy = _facade.getProxy(ProxyList.TRIGGERS_PROXY);
+			isosceneHelper = _facade.getObserver(ddgame.client.view.HelperList.ISOSCENE_HELPER);
+			objectBuilderProxy = _facade.getProxy(ProxyList.OBJECTBUILDER_PROXY);
+			envEditor = new EnvEditor;
+			envEditor.datamapProxy = datamapProxy;
+			envEditor.gateway = _gateway;
+			envEditor.playerProxy = playerProxy;
+			playerHelper = _facade.getObserver(ddgame.client.view.HelperList.PLAYER_HELPER);
+			
+			playerProfil.playerProxy = playerProxy;
+			playerProfil.gateway = _gateway;			
+			
+			// on coupe les triggers
+			triggersProxy.triggersEnabled = false;
+			// on coupe le son
+			_facade.getObserver(ddgame.helper.HelperList.AUDIO_HELPER).muteMusic();
+			
+			// on s'abonne à la construction des scènes
+			isosceneHelper.channel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 500, true);
+			// ecoute clavier
+			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
+			
+			// passage appli pour affichage
+			viewport.display = _beta;
+		}
+		
+		/**
+		 *  Réception préloading config et core
+		 *	@param event Event
+		 */
+		private function onPreloadComplete (event:Event) : void
+		{
+			var loader:BulkLoader = BulkLoader.getLoader("preload");
+			switch (preloadState)
+			{
+				// > config chargée
+				case "conf" :
+					preloadState = "app"
+					loader.add("core.swf", {id:"core"});
+					loader.start();
+					break;
+				// > core chargé
+				case "app" :
+					_beta = loader.getContent("core", true);
+					_beta.startup(loader.getXML("config", true));
+					_beta.facade.publicChannel.addEventListener("appReady", onCoreInitialized, false, 0);
+					loader.removeEventListener(Event.COMPLETE, onPreloadComplete);
+					preloadState = null;
+					break;
+			}
+		}
+		
+		/**
+		 *	Réception application initialisée
+		 *  Mise en place du remoting et début préload
+		 */
+		private function onCreationComplete () : void
 		{
 			Security.allowDomain("*");
-			
-			// remoting
-			/*var rhost:String = Application.application.parameters.rhost;
-						if (!rhost) rhost = "/amfphp/_gateway.php";				
-						_gateway = new NetConnection();
-						_gateway.objectEncoding = ObjectEncoding.AMF0;
-						_gateway.connect(rhost);
-						_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );*/
-			
-			// boite login
-			/*var dBox:IFlexDisplayObject = PopUpManager.createPopUp(viewport, LoginBox, true);
-			PopUpManager.centerPopUp(dBox);
-			currentPopup = dBox;
-			currentPopup.validateBtn.addEventListener(MouseEvent.CLICK, loginBoxHandler, false, 0, true);*/
 			
 			// ecoute selection dans menu
 			menuBar.addEventListener(MenuEvent.ITEM_CLICK, menuBarHandler, false, 100, true);
 			focusManager.deactivate();
+			
+			// preload
+			var loader:BulkLoader = new BulkLoader("preload");
+			// chargement config
+			preloadState = "conf";
+			loader.add("config.xml", {id:"config"});
+			loader.addEventListener(Event.COMPLETE, onPreloadComplete);
+			loader.start();
 		}
 		
 		//---------------------------------------
@@ -482,7 +490,7 @@
 		 *	@private
 		 * 	Recharge la preview (si en mode preview)
 		 */
-		private function reloadPreview():void
+		private function reloadPreview () : void
 		{
 			if (previewMode)
 			{
