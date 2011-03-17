@@ -477,7 +477,10 @@
 			var loader:BulkLoader = new BulkLoader("preload");
 			// chargement config
 			preloadState = "conf";
-			loader.add("config.xml", {id:"config"});
+			var vars:Object = Application.application.parameters;
+			// recup chargement config définit par une flashvar
+			var confFile:String = ("conf" in vars) ? vars.conf : "config.xml";		
+			loader.add(confFile, {id:"config"});
 			loader.addEventListener(Event.COMPLETE, onPreloadComplete);
 			loader.start();
 		}
