@@ -46,7 +46,7 @@
 		public var isoscene:Object;
 		public var dataMapProxy:Object;
 		public var collisionGridProxy:Object;
-		public var beta:Object;
+		public var core:Object;
 		
 		/**
 		*	Description
@@ -70,9 +70,9 @@
 					var cell:Object = grid.getCell(i, j, 0);
 					if (cell.collision || cell.cost) {
 						var id:String = i + "-" + j;
-						var tv:Object = beta.createTileView(createCCell(cell.cost, cell.throwable));
-						var up:Object = beta.createUPoint(i, j, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-						var t:Object = beta.createAbstractTile(id, up, tv);
+						var tv:Object = core.createTileView(createCCell(cell.cost, cell.throwable));
+						var up:Object = core.createUPoint(i, j, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+						var t:Object = core.createAbstractTile(id, up, tv);
 						isoscene.debugLayer.addTile(t);
 					}
 				}
@@ -120,12 +120,12 @@
 				var cellcost:int = ns_cellcost.value;
 				if (cb_cellthrowable.selected) celltype = 3;
 				
-				var cell:Object = beta.createCollisionCell(cellcost ? 0 : celltype, cellcost);
+				var cell:Object = core.createCollisionCell(cellcost ? 0 : celltype, cellcost);
 				collisionGridProxy.addCell(p.x, p.y, 0, cell);
 				var id:String = p.x + "-" + p.y;
-				var tv:Object = beta.createTileView(createCCell(cell.cost, cell.throwable));
-				var up:Object = beta.createUPoint(p.x, p.y, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-				var t:Object = beta.createAbstractTile(id, up, tv);
+				var tv:Object = core.createTileView(createCCell(cell.cost, cell.throwable));
+				var up:Object = core.createUPoint(p.x, p.y, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+				var t:Object = core.createAbstractTile(id, up, tv);
 				isoscene.debugLayer.addTile(t);
 			}
 			
@@ -142,7 +142,7 @@
 			collisionGridProxy = parentApplication.collisionGridProxy;
 			isoscene = parentApplication.isosceneHelper.component;
 			dataMapProxy = parentApplication.datamapProxy;
-			beta = parentApplication.beta;
+			core = parentApplication.core;
 			
 			onAdd();
 		}
@@ -162,9 +162,9 @@
 			s.graphics.lineTo(-(dataMapProxy.tilew / 2), dataMapProxy.tileh / 2);
 			s.graphics.lineTo(0, 0);
 			
-			var tv:Object = beta.createTileView(s);
-			var up:Object = beta.createUPoint(0, 0, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-			var t:Object = beta.createAbstractTile("_collisionCellTemplate_", up, tv);
+			var tv:Object = core.createTileView(s);
+			var up:Object = core.createUPoint(0, 0, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+			var t:Object = core.createAbstractTile("_collisionCellTemplate_", up, tv);
 			isoscene.debugLayer.addTile(t);
 			
 			cellTemplate = t;*/

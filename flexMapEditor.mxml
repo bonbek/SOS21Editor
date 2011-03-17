@@ -81,8 +81,8 @@
 		
 		// connection amfphp
 		private var _gateway:NetConnection;
-		private var _beta:Object;
-		// _facade de la beta
+		private var _core:Object;
+		// _facade de la core
 		private var _facade:Object;
 		
 		// TriggerProxy
@@ -109,8 +109,8 @@
 		// GETTER / SETTERS
 		//---------------------------------------
 		
-		public function get beta () : Object
-		{ return _beta; }
+		public function get core () : Object
+		{ return _core; }
 		
 		public function get facade () : Object
 		{ return _facade; }
@@ -145,7 +145,7 @@
 
 			// on recharge
 			var mid:int = int(datamapProxy.getData().id);
-			beta.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+			core.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
 		}
 		
 		/**
@@ -315,7 +315,7 @@
 				{
 					//
 					var mid:int = int(currentPopup.itemList.selectedItem.id);
-					beta.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+					core.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
 					//
 					currentPopup.validateButton.removeEventListener(MouseEvent.CLICK, popupListHandler, false);
 					PopUpManager.removePopUp(IFlexDisplayObject(currentPopup));
@@ -393,7 +393,7 @@
 		private function onCoreInitialized (event:Event) : void
 		{
 			// récup _facade
-			_facade = _beta.facade;			
+			_facade = _core.facade;			
 			_facade.publicChannel.removeEventListener("appReady", onCoreInitialized, false);			
 			
 			configProxy = _facade.getProxy("configProxy");
@@ -432,7 +432,7 @@
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
 			
 			// passage appli pour affichage
-			viewport.display = _beta;
+			viewport.display = _core;
 		}
 		
 		/**
@@ -452,9 +452,9 @@
 					break;
 				// > core chargé
 				case "app" :
-					_beta = loader.getContent("core", true);
-					_beta.startup(loader.getXML("config", true));
-					_beta.facade.publicChannel.addEventListener("appReady", onCoreInitialized, false, 0);
+					_core = loader.getContent("core", true);
+					_core.startup(loader.getXML("config", true));
+					_core.facade.publicChannel.addEventListener("appReady", onCoreInitialized, false, 0);
 					loader.removeEventListener(Event.COMPLETE, onPreloadComplete);
 					preloadState = null;
 					break;
@@ -498,7 +498,7 @@
 			if (previewMode)
 			{
 				var mid:int = int(datamapProxy.getData().id);
-				beta.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+				core.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
 			}
 		}
 		

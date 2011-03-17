@@ -48,7 +48,7 @@
 		public var dataMapProxy:Object;
 		public var collisionGridProxy:Object;
 		public var triggersProxy:Object;
-		public var beta:Object;
+		public var core:Object;
 		public var mapList:Array;
 		
 //		public var triggersVisualizer:TriggersVisualizer;
@@ -274,9 +274,9 @@
 				var cell:Array = tr.refId.split("-");
 				if (cell.length == 3)
 				{
-					var tv:Object = beta.createTileView(createCCell());
-					var up:Object = beta.createUPoint(cell[0], cell[1], cell[2], dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-					var t:Object = beta.createAbstractTile(tr.refId, up, tv);
+					var tv:Object = core.createTileView(createCCell());
+					var up:Object = core.createUPoint(cell[0], cell[1], cell[2], dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+					var t:Object = core.createAbstractTile(tr.refId, up, tv);
 					isoscene.debugLayer.addTile(t);
 				}
 			}
@@ -560,7 +560,7 @@
 			event.preventDefault();
 			
 			var p:Point = isoscene.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
-			var up:Object = beta.createUPoint(p.x, p.y, 0);
+			var up:Object = core.createUPoint(p.x, p.y, 0);
 			var t:Object = parentApplication.isosceneHelper.getTile(up.xu + "-" + up.yu + "-" + up.zu);
 			
 			switch (event.type)
@@ -1251,7 +1251,7 @@
 			collisionGridProxy = parentApplication.collisionGridProxy;
 			isoscene = parentApplication.isosceneHelper.component;
 			dataMapProxy = parentApplication.datamapProxy;
-			beta = parentApplication.beta;
+			core = parentApplication.core;
 			triggersProxy = parentApplication.triggersProxy;
 			
 			// id's / intitulés des classes de triggers
@@ -1312,9 +1312,9 @@
 		 */
 		private function addCellTrigger(x:int, y:int, z:int):Object
 		{
-			var tv:Object = beta.createTileView(createCCell());
-			var up:Object = beta.createUPoint(x, y, z, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-			var t:Object = beta.createAbstractTile(String(x + "-" + y + "-" + z), up, tv);
+			var tv:Object = core.createTileView(createCCell());
+			var up:Object = core.createUPoint(x, y, z, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+			var t:Object = core.createAbstractTile(String(x + "-" + y + "-" + z), up, tv);
 			isoscene.debugLayer.addTile(t);
 			
 			return t;

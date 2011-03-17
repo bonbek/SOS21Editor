@@ -53,7 +53,7 @@
 		public var dataMapProxy:Object;
 		public var collisionGridProxy:Object;
 		public var triggersProxy:Object;
-		public var beta:Object;
+		public var core:Object;
 		
 		public var mapList:Array;
 		public var toolbar:Object;
@@ -433,9 +433,9 @@
 				var cell:Array = tr.refId.split("-");
 				if (cell.length == 3)
 				{
-					var tv:Object = beta.createTileView(createCCell());
-					var up:Object = beta.createUPoint(cell[0], cell[1], cell[2], dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-					var t:Object = beta.createAbstractTile(tr.refId, up, tv);
+					var tv:Object = core.createTileView(createCCell());
+					var up:Object = core.createUPoint(cell[0], cell[1], cell[2], dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+					var t:Object = core.createAbstractTile(tr.refId, up, tv);
 					isoscene.debugLayer.addTile(t);
 				}
 			}
@@ -883,7 +883,7 @@
 			event.preventDefault();
 
 			var p:Point = isoscene.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
-			var up:Object = beta.createUPoint(p.x, p.y, 0);
+			var up:Object = core.createUPoint(p.x, p.y, 0);
 			var spos:String = up.xu + "-" + up.yu + "-" + up.zu;
 			var t:Object = isosceneHelper.getTile(spos);
 
@@ -1501,7 +1501,7 @@
 		private function onCreationComplete (event:FlexEvent) : void
 		{
 			// --- stockage des réfs utiles
-			beta = parentApplication.beta;
+			core = parentApplication.core;
 			collisionGridProxy = parentApplication.collisionGridProxy;
 			isosceneHelper = parentApplication.isosceneHelper;
 			isoscene = parentApplication.isosceneHelper.component;
@@ -1610,9 +1610,9 @@
 		private function addCellTrigger(x:int, y:int, z:int):Object
 		{
 
-			var tv:Object = beta.createTileView(createCCell());
-			var up:Object = beta.createUPoint(x, y, z, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-			var t:Object = beta.createAbstractTile(String(x + "-" + y + "-" + z), up, tv);
+			var tv:Object = core.createTileView(createCCell());
+			var up:Object = core.createUPoint(x, y, z, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
+			var t:Object = core.createAbstractTile(String(x + "-" + y + "-" + z), up, tv);
 			isoscene.debugLayer.addTile(t);
 			return t;
 		}
