@@ -29,11 +29,6 @@
 		import flash.geom.Point;
 		import flash.net.Responder;
 		
-		import com.sos21.tileengine.core.AbstractTile;
-		import com.sos21.tileengine.structures.UPoint;
-		import com.sos21.tileengine.display.TileView;
-		import ddgame.client.proxy.ProxyList;
-		
 		//---------------------------------------
 		// PRIVATE & PROTECTED INSTANCE VARIABLES
 		//---------------------------------------
@@ -46,7 +41,7 @@
 		public var isoscene:Object;
 		public var dataMapProxy:Object;
 		public var collisionGridProxy:Object;
-		public var core:Object;
+		public var objectBuilderProxy:Object;
 		
 		/**
 		*	Description
@@ -70,9 +65,8 @@
 					var cell:Object = grid.getCell(i, j, 0);
 					if (cell.collision || cell.cost) {
 						var id:String = i + "-" + j;
-						var tv:Object = core.createTileView(createCCell(cell.cost, cell.throwable));
-						var up:Object = core.createUPoint(i, j, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-						var t:Object = core.createAbstractTile(id, up, tv);
+						var tv:Object = objectBuilderProxy.createTileView(createCCell(cell.cost, cell.throwable));
+						var t:Object = objectBuilderProxy.createAbstractTile(id, i, j, 0, tv);
 						isoscene.debugLayer.addTile(t);
 					}
 				}
@@ -115,21 +109,20 @@
 				// on supprime la collision
 				collisionGridProxy.removeCellAt(p.x, p.y, 0);
 				isoscene.debugLayer.removeTile(event.target);
-			} else {
+			}
+			else
+			{
 				var celltype:int = 1;
 				var cellcost:int = ns_cellcost.value;
 				if (cb_cellthrowable.selected) celltype = 3;
 				
-				var cell:Object = core.createCollisionCell(cellcost ? 0 : celltype, cellcost);
+				var cell:Object = objectBuilderProxy.createCollisionCell(cellcost ? 0 : celltype, cellcost);
 				collisionGridProxy.addCell(p.x, p.y, 0, cell);
 				var id:String = p.x + "-" + p.y;
-				var tv:Object = core.createTileView(createCCell(cell.cost, cell.throwable));
-				var up:Object = core.createUPoint(p.x, p.y, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-				var t:Object = core.createAbstractTile(id, up, tv);
+				var tv:Object = objectBuilderProxy.createTileView(createCCell(cell.cost, cell.throwable));
+				var t:Object = objectBuilderProxy.createAbstractTile(id, p.x, p.y, 0, tv);
 				isoscene.debugLayer.addTile(t);
 			}
-			
-			//toSave = true;
 		}
 		
 		/**
@@ -142,7 +135,7 @@
 			collisionGridProxy = parentApplication.collisionGridProxy;
 			isoscene = parentApplication.isosceneHelper.component;
 			dataMapProxy = parentApplication.datamapProxy;
-			core = parentApplication.core;
+			objectBuilderProxy = parentApplication.objectBuilderProxy;
 			
 			onAdd();
 		}
@@ -152,27 +145,10 @@
 			// on test si déjà initialisé
 			if (!collisionGridProxy) return;
 			displayCollisions();
-						
-			/*var s:Shape = new Shape();
-			s.graphics.beginFill(0xFFFFFF, 0);
-			s.graphics.lineStyle(1, 0xFF0000);
-
-			s.graphics.lineTo(dataMapProxy.tilew / 2, dataMapProxy.tileh / 2);
-			s.graphics.lineTo(0, dataMapProxy.tileh);
-			s.graphics.lineTo(-(dataMapProxy.tilew / 2), dataMapProxy.tileh / 2);
-			s.graphics.lineTo(0, 0);
-			
-			var tv:Object = core.createTileView(s);
-			var up:Object = core.createUPoint(0, 0, 0, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-			var t:Object = core.createAbstractTile("_collisionCellTemplate_", up, tv);
-			isoscene.debugLayer.addTile(t);
-			
-			cellTemplate = t;*/
 			
 			// on enleve les listeners par défaut de la scene iso
 			parentApplication.viewport.isosceneListenersEnabled = false;
 			
-//			stage.addEventListener(MouseEvent.MOUSE_MOVE, isosceneMouseHandler, false, 0, true);
 			stage.addEventListener(MouseEvent.MOUSE_UP, isosceneMouseHandler, false, 0, true);
 		}
 		

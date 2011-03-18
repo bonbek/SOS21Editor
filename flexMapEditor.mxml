@@ -38,12 +38,9 @@
 		
 		import br.com.stimuli.loading.BulkLoader;
 		
-		import ddgame.client.proxy.ProxyList;
-		import ddgame.client.view.HelperList;
+		import ddgame.proxy.ProxyList;
 		import ddgame.helper.HelperList;
-
-		import ddgame.client.events.EventList;
-		import ddgame.client.events.PublicIsoworldEventList;
+		import ddgame.events.EventList;
 		
 		import flexmapeditor.view.components.PopupList;
 		import flexmapeditor.view.components.LoginBox;
@@ -393,8 +390,6 @@
 		 */
 		private function onCoreInitialized (event:Event) : void
 		{
-			// récup _facade
-			_facade = _core.facade;			
 			_facade.publicChannel.removeEventListener("appReady", onCoreInitialized, false);			
 			
 			configProxy = _facade.getProxy("configProxy");
@@ -411,13 +406,13 @@
 			datamapProxy = _facade.getProxy(ProxyList.DATAMAP_PROXY);
 			playerProxy = _facade.getProxy(ProxyList.PLAYER_PROXY);
 			triggersProxy = _facade.getProxy(ProxyList.TRIGGERS_PROXY);
-			isosceneHelper = _facade.getObserver(ddgame.client.view.HelperList.ISOSCENE_HELPER);
+			isosceneHelper = _facade.getObserver(HelperList.ISOSCENE_HELPER);
 			objectBuilderProxy = _facade.getProxy(ProxyList.OBJECTBUILDER_PROXY);
 			envEditor = new EnvEditor;
 			envEditor.datamapProxy = datamapProxy;
 			envEditor.gateway = _gateway;
 			envEditor.playerProxy = playerProxy;
-			playerHelper = _facade.getObserver(ddgame.client.view.HelperList.PLAYER_HELPER);
+			playerHelper = _facade.getObserver(HelperList.PLAYER_HELPER);
 			
 			playerProfil.playerProxy = playerProxy;
 			playerProfil.gateway = _gateway;			
@@ -425,10 +420,10 @@
 			// on coupe les triggers
 			triggersProxy.triggersEnabled = false;
 			// on coupe le son
-			_facade.getObserver(ddgame.helper.HelperList.AUDIO_HELPER).muteMusic();
+			_facade.getObserver(HelperList.AUDIO_HELPER).muteMusic();
 			
 			// on s'abonne à la construction des scènes
-			isosceneHelper.channel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuilded, false, 500, true);
+			isosceneHelper.channel.addEventListener(EventList.ISOSCENE_BUILDED, onSceneBuilded, false, 500, true);
 			// ecoute clavier
 			stage.addEventListener(KeyboardEvent.KEY_UP, keyboardHandler, false, 0, true);
 			
@@ -462,8 +457,8 @@
 				case "app" :
 					_core = loader.getContent("core");
 					var clientServer:Object = loader.getContent("clientServer");
-					_core.startup(loader.getXML("config"), clientServer);
-					_core.facade.publicChannel.addEventListener("appReady", onCoreInitialized, false, 0);
+					_facade = _core.startup(loader.getXML("config"), clientServer);
+					facade.publicChannel.addEventListener("appReady", onCoreInitialized, false, 0);
 					loader.removeEventListener(Event.COMPLETE, onPreloadComplete);
 					preloadState = null;
 					break;

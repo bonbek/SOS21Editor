@@ -12,8 +12,8 @@
 		import flash.display.*;
 		import flash.utils.getTimer;
 		
-		import ddgame.client.view.HelperList;
-		import ddgame.client.events.PublicIsoworldEventList;
+		import ddgame.helper.HelperList;
+		import ddgame.events.EventList;
 		
 		/**
 		 *	Conteneur affichage de la scène
@@ -50,7 +50,7 @@
 		public function set display (core:Object) : void
 		{
 			// stockage refs
-			isoSceneHelper = core.facade.getObserver(HelperList.ISOSCENE_HELPER);
+			isoSceneHelper = parentApplication.isosceneHelper;
 
 			// re-positionnement scène
 			isoSceneHelper.component.x = 0;
@@ -58,7 +58,7 @@
 			
 			// ajout listener pour pan view
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
-			core.facade.publicChannel.addEventListener(PublicIsoworldEventList.ISOSCENE_BUILDED, onSceneBuildedHandler, false);
+			parentApplication.facade.publicChannel.addEventListener(EventList.ISOSCENE_BUILDED, onSceneBuildedHandler, false);
 			
 			// affichage
 			container.scrollRect = new Rectangle(0, 0, 840, 480);
