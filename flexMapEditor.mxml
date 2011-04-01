@@ -24,8 +24,11 @@
 	    <![CDATA[
 		
 		import mx.events.MenuEvent;
+		import mx.controls.*;
 		import mx.managers.PopUpManager;
 		import mx.core.IFlexDisplayObject;
+		import mx.containers.Panel;
+		import mx.controls.Label;
 		
 		import flash.events.KeyboardEvent;
 		import flash.events.MouseEvent;
@@ -42,9 +45,9 @@
 		import ddgame.helper.HelperList;
 		import ddgame.events.EventList;
 		
-		import flexmapeditor.view.components.PopupList;
-		import flexmapeditor.view.components.LoginBox;
-		import flexmapeditor.view.components.EnvEditor;
+//		import flexmapeditor.view.components.PopupList;
+//		import flexmapeditor.view.components.LoginBox;
+		import flexmapeditor.view.components.*;
 
 		
 		/**
@@ -143,7 +146,7 @@
 
 			// on recharge
 			var mid:int = int(datamapProxy.getData().id);
-			core.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+			facade.sendEvent(objectBuilderProxy.createBaseEvent(EventList.GOTO_MAP, {mapId:mid}));
 		}
 		
 		/**
@@ -220,9 +223,19 @@
 			}
 		}
 		
+		private var msgPanel:ProcessWindow;
+		public function onConvertToCouchComplete (signal:Object) : void
+		{
+			if (signal.complete) {
+				trace("conversion complete")
+			}
+			else {
+				msgPanel.trace(signal.msg);
+			}
+		}
+		
 		/**
-		 *	Reception des events dans la barre de menu 
-		 * 
+		 *	Réception des events dans la barre de menu 
 		 *	@param event MenuEvent
 		 */
 		private function menuBarHandler(event:MenuEvent):void
@@ -230,6 +243,17 @@
 			var entry:String = event.item.@data;
 			switch (entry)
 			{
+				// > conversion data AMF > CouchDB
+				case "convertToCouchDB" :
+				{
+					msgPanel = PopUpManager.createPopUp(this, ProcessWindow, true) as ProcessWindow;
+					msgPanel.width = 800;
+					msgPanel.height = 400;
+					PopUpManager.centerPopUp(msgPanel);
+
+					facade.getProxy(ProxyList.SERVER_PROXY).couchConvert().add(onConvertToCouchComplete);
+					break;
+				}
 				// > ouvrir une scène
 				case "open" :
 				{
@@ -313,7 +337,7 @@
 				{
 					//
 					var mid:int = int(currentPopup.itemList.selectedItem.id);
-					core.sendBaseEvent(EventList.GOTO_MAP, {mapId:mid});
+					facade.sendEvent(objectBuilderProxy.createBaseEvent(EventList.GOTO_MAP, {mapId:mid}));
 					//
 					currentPopup.validateButton.removeEventListener(MouseEvent.CLICK, popupListHandler, false);
 					PopUpManager.removePopUp(IFlexDisplayObject(currentPopup));
