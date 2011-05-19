@@ -80,25 +80,31 @@
 		private var firstInit:Boolean = true;
 		// trigger en pris en charge par cette instances
 		private var _trigger:Object;
-		[Bindable]
-		public function set trigger(t:Object):void
+//		[Bindable]
+		public function set trigger (t:Object) : void
 		{
 			if (firstInit) {
 				_init();
+				//_trigger = t;
 				firstInit = false;
 			}
 			else {
-				if (_trigger)
-				{
-					onRemove();
-				}
+				if (_trigger) onRemove();
+
 				_trigger = t;
 				// clean dataProvider
 				dpActions.removeAll();
+
 				// maj
+				var toSave:Boolean = false;
 				var args:Object = _trigger.arguments;
 				if ("act" in args)
+				{
 					dpActions.source = args["act"].slice();
+					// check changemment freeze scène > répercution dans option du même
+					// nom des sous action
+					if (cleanFreezeOption()) toSave = true;
+				}
 
 				if ("lp" in args)
 				{
@@ -108,14 +114,69 @@
 				else {
 					nsLoop.value = 1
 					ckLoop.selected = false;
-					updateOnSave();
-				}	
+					toSave = true;					
+				}
+				
+				if (toSave) updateOnSave();
 			}
+			
+		}
+		
+		private function cleanFreezeOption () : Boolean
+		{
+			var changed:Boolean = false;
+			var fs:Boolean = ("_fs" in _trigger.arguments);
+			for each (var it:Object in dpActions)
+			{
+				if ("fs" in it)
+				{
+					if (it.fs == 1 && fs || it.fs == 0 && !fs)
+					{
+						changed = true;
+						break;
+					}
+				}
+			}
+			
+			if (changed)
+			{
+				for each (it in dpActions)
+				{
+					delete it.fs;
+				}				
+			}
+			
+			return changed;
 			
 		}
 		
 		public function get trigger():Object {
 			return _trigger;
+		}
+		
+		// Option freeze / unfreeze scène
+		private var _freezeOption:String;
+		public function get freezeOption () : String
+		{
+			return _freezeOption;
+		}
+		
+		public function set freezeOption (val:String) : void
+		{
+			if (val == "freeze")
+			{
+				ckFreezeScene.label = "gèle";
+				_freezeOption = val;
+			}
+			else if (val == "unfreeze")
+			{				
+				ckFreezeScene.label = "dégèle";
+				_freezeOption = val;
+			}
+			else
+			{
+				_freezeOption = null;
+			}
 		}
 		
 		//---------------------------------------
@@ -164,6 +225,9 @@
 			for each (var it:Object in dpActions)
 			{
 				ob = {t:it.t, a:it.a, d:it.d, we:it.we};
+				// prop freeze scène
+				if ("fs" in it) ob.fs = it.fs;
+				// propriétés action
 				if (it.p) ob.p = it.p;
 				nl.push(ob);
 			}
@@ -225,6 +289,19 @@
 					sAction.we = int(ckWaitEnd.selected);
 					dpActions.itemUpdated(sAction);
 					break;
+				// freeze / unfreeze
+				case ckFreezeScene :
+					if (!ckFreezeScene.selected) delete sAction.fs;
+					else
+						sAction.fs = freezeOption == "freeze" ? 1 : 0;
+					dpActions.itemUpdated(sAction);
+					// update des actions suivante
+					for (var i:int = dgActions.selectedIndex + 1; i < dpActions.length; i++)
+					{
+						delete dpActions.getItemAt(i).fs;
+					}
+					
+					break;
 			}
 		}
 		
@@ -260,20 +337,27 @@
 				disposeOptions();
 			}
 			
-			// maj composant
+			// maj type d'action
 			cbActionType.selectedIndex = sAction.a;
+			// maj durée
 			nsDuration.value = sAction.d;
+			// maj attente fin
 			ckWaitEnd.selected = sAction.we;
 			
 			// Affichage Preview
 			var ind:int = dgActions.selectedIndex;
 			var act:Object;
 			var tile:Object;
+			// check état scène freezé
+			var fs:Boolean = ("_fs" in _trigger.arguments);
+			
 			for (var i:int = 0; i < ind; i++)
 			{
 				act = dpActions.getItemAt(i);
 				tile = getTile(act.t);
 				if (!tile) continue;
+				// check si l'action freeze / unfreeze scene
+				if ("fs" in act) fs = Boolean(act.fs);
 				switch (act.a)
 				{
 					case 0 :
@@ -296,6 +380,30 @@
 				}
 			}
 			
+			// freeze / unfreeze scene
+			freezeOption = fs ? "unfreeze" : "freeze";
+			if ("fs" in sAction)
+			{
+				// option unfreeze activée
+				switch (true)
+				{
+					// option unfreeze activée
+					case (sAction.fs == 0 && freezeOption == "unfreeze") :
+						ckFreezeScene.selected = true;
+						break;
+					// option freeze activée
+					case (sAction.fs == 1 && freezeOption == "freeze") :
+						ckFreezeScene.selected = true;
+						break;
+					default :
+						ckFreezeScene.selected = false;
+						break;
+				}
+			}
+			else {
+				ckFreezeScene.selected = false;
+			}
+
 			// Init sur actions
 			openOptions(sAction.a);
 		}
@@ -524,7 +632,7 @@
 		
 		/**
 		 *	@private
-		 * Suppresion du composant de lla liste
+		 * Suppresion du composant de la liste
 		 * d'affichage
 		 */
 		private function onRemove () : void
@@ -616,12 +724,14 @@
         </mx:columns>
     </mx:DataGrid>
 	<!-- 
-	 	Durée / attente fin -->
+	 	Durée / attente fin / freeze scène -->
 	<mx:HBox enabled="{dgActions.selectedItem != null}">
 		<mx:ComboBox id="cbActionType" rowCount="20" dataProvider="{actionTypes}" close="onEditAction(event)" />
 		<mx:Label text="durée" />
-		<mx:NumericStepper id="nsDuration" stepSize=".1" enabled="{!ckWaitEnd.selected || cbActionType.selectedIndex==4}" change="onEditAction(event)" />
-		<mx:CheckBox id="ckWaitEnd" label="att. fin" change="onEditAction(event)" />
+		<mx:NumericStepper id="nsDuration"
+			stepSize=".1" enabled="{!ckWaitEnd.selected || cbActionType.selectedIndex==4}" change="onEditAction(event)" />
+		<mx:CheckBox id="ckWaitEnd" label="att." change="onEditAction(event)" />
+		<mx:CheckBox id="ckFreezeScene" change="onEditAction(event)" />
 	</mx:HBox>
 
 </mx:VBox>

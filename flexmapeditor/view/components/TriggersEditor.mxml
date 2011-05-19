@@ -123,7 +123,7 @@
 										{label:"condition", data:109, enabled:true},
 										{label:"modifier variable(s)", data:107, enabled:true},
 										{label:"::dispatch event::", data:10, enabled:false},
-										{label:"::TScript::", data:104, enabled:false}]);
+										{label:"::TScript::", data:104, enabled:true}]);
 										
 
 		// dp pour le combo type de déclenchement
@@ -1610,8 +1610,7 @@
 		{
 
 			var tv:Object = objectBuilderProxy.createTileView(createCCell());
-			var up:Object = objectBuilderProxy.createUPoint(x, y, z, dataMapProxy.tilew, dataMapProxy.tileh, dataMapProxy.tiled);
-			var t:Object = objectBuilderProxy.createAbstractTile(String(x + "-" + y + "-" + z), up, tv);
+			var t:Object = objectBuilderProxy.createAbstractTile(String(x + "-" + y + "-" + z), x, y, z, tv);
 			isoscene.debugLayer.addTile(t);
 			return t;
 		}
@@ -2042,6 +2041,12 @@
 		{
 			switch (tn_triggerOpts.selectedIndex)
 			{
+				case 0 :
+					if (currentAddForm) {
+						currentAddForm.trigger = currentTrigger;
+					}
+					break;
+				
 				// options génériques
 				case 1 :
 					comAddForm.trigger = currentTrigger;
