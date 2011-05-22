@@ -81,7 +81,7 @@
 		public function getSarfeArguments():Array
 		{
 			// TODO argument skin
-			return ["id", "skin", "width", "height", "x", "y"];
+			return ["id", "cb", "skin", "w", "h", "x", "y"];
 		}
 		
 		/**
@@ -89,7 +89,7 @@
 		 * 
 		 *	@private
 		 */
-		public function safeSave():void
+		public function safeSave () : void
 		{
 			/*var txt:String = texArea.htmlText;							
 			// sauvergarde du text dans la DB
@@ -158,6 +158,20 @@
 			textAreaContent = txt;
 			// sauvegarde
 			saveHtml();
+		}
+		
+		/**
+		 * Réception changement d'une des options d'affichage
+		 *	@param event Event
+		 */
+		private function onOptionChange (event:Event) : void
+		{
+			switch (event.target)
+			{
+				case ckShowCloseButton :
+					_trigger.arguments["cb"] = ckShowCloseButton.selected;
+					break;
+			}
 		}
 		
 		/**
@@ -244,8 +258,8 @@
 		 *	Initialisation du composant
 		 *	@see mx.events.FlexEvent
 		 */
-		private function onCreationComplete(event:FlexEvent = null) : void
-		{ 
+		private function onCreationComplete (event:FlexEvent = null) : void
+		{
 			firstInit = false;
 			if (!_trigger.arguments["id"]) // on à pas de ref contenu à la DB
 			{
@@ -258,7 +272,11 @@
 				// recupération du contenu
 				parentApplication.gateway.call( "sos21Services.getContent", new Responder(onRecieveContent, onRecieveContent), _trigger.arguments["id"]);
 			}
+
 			this.visible = false;
+			
+			// Option affichage du boutton fermer	
+			ckShowCloseButton.selected = ("cb" in _trigger.arguments) ? _trigger.arguments["cb"] : true;
 		}
 		
 		//---------------------------------------
@@ -298,4 +316,5 @@
 	</mx:HBox>
 	<mx:TextArea id="texArea" width="100%" height="100"
 				editable="true" htmlText="{textAreaContent}" />
+	<mx:CheckBox id="ckShowCloseButton" label="Afficher boutton fermer" change="onOptionChange(event);" />
 </mx:VBox>
