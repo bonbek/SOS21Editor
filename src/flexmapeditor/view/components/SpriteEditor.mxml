@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" title="Edition d'objet"
+	showCloseButton="true" close="PopUpManager.removePopUp(this);"
+	width="780" height="440"
+	addedToStage="onAdd();"
+	remove="onRemove();"
+	creationComplete="onCreationComplete(event);">
+	
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+
+		import mx.events.CloseEvent;
+		import mx.events.FlexEvent;
+		import mx.managers.PopUpManager;
+		import mx.collections.ArrayCollection;
+		import mx.controls.SWFLoader;
+		import mx.controls.Alert;
+		import flash.events.Event;
+		import flash.events.MouseEvent;
+		import flash.events.KeyboardEvent;
+		import flash.display.Shape;
+		import mx.core.UIComponent;
+		import flash.utils.*;
+		import ddgame.server.IDocumentServices;
+		import ddgame.server.IObjectDocument;
+		import ddgame.server.IDatabaseDocument;
+		
+		/**
+		*	Description
+		*
+		*	@langversion ActionScript 3.0
+		*	@playerversion Flash 9.0
+		*
+		*	@author Christopher Corbin
+		*	@since  2011-01-10
+		*/
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		// offset de click
+		private var ofsClickX:int;
+		private var ofsClickY:int;
+		// data tile
+//		private var _objectModel:Object;
+		
+		// Document en édition
+		private var _objectModel:IObjectDocument;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		// Services
+		public var services:IDocumentServices;
+		
+		[Bindable]
+		public var librarys:ArrayCollection;
+				
+//		public var gateway:Object;
+		public var assetsPath:String;
+		public var cellSize:int = 30;
+		public var currentLib:int;
+		
+		[Bindable]
+		public var categoryList:Array;
+		
+		/**
+		 * 
+		 */
+		public function set objectModel (val:IObjectDocument) : void
+		{
+			_objectModel = val;
+			
+			// offsets
+			loader.x = _objectModel.ofsX;
+			loader.y = _objectModel.ofsY;
+			loader.source = assetsPath + val.assets;
+			
+			// maj infos
+			lbId.text = _objectModel.id;
+			tiTitle.text = _objectModel.title;
+			tiAssetUrl.text = String(_objectModel.assets);
+			tiWidth.value = _objectModel.width;
+			tiDepth.value = _objectModel.depth;
+			tiHeight.value = _objectModel.height;
+			var catid:String = _objectModel.category;
+			for each (var c:Object in librarys)
+			{
+				if (c.title == catid) {
+					cbLibrary.selectedItem = c;
+					break;
+				}
+			}
+			
+			// maj reglettes
+			dimWidth.x = _objectModel.width * cellSize;
+			dimWidth.y = (_objectModel.width * cellSize) / 2;
+			dimDepth.x = -(_objectModel.depth * cellSize);
+			dimDepth.y = (_objectModel.depth * cellSize) / 2;
+			dimHeight.y = -(_objectModel.height * cellSize);
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Lance l'édition d'un modèle d'objet
+		 *	@param modelId String / objet
+		 */
+		public function editModel (objectModel:Object) : void
+		{
+			if (objectModel is IObjectDocument) this.objectModel = objectModel as IObjectDocument;
+			else
+				loadModel(String(objectModel));
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * Manipulation du sprite tile, placement.
+		 *	@param event Event
+		 */
+		private function handleMouseLoader (event:Event) : void
+		{
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					ofsClickX = viewport.mouseX - loader.x;
+					ofsClickY = viewport.mouseY - loader.y;
+					stage.addEventListener(MouseEvent.MOUSE_UP, handleMouseLoader);
+					stage.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseLoader);
+					break;
+				case MouseEvent.MOUSE_MOVE :
+					loader.x = viewport.mouseX - ofsClickX;
+					loader.y = viewport.mouseY - ofsClickY;
+					break;
+				case MouseEvent.MOUSE_UP :
+					stage.removeEventListener(MouseEvent.MOUSE_UP, handleMouseLoader);
+					stage.removeEventListener(MouseEvent.MOUSE_MOVE, handleMouseLoader);
+					break;
+			}
+		}
+		
+		/**
+		 * Manipulation des marqueurs réglage taille du sprite
+		 *	@param event Event
+		 */
+		private var currentMarker:Object;
+		private function handleMouseMarker (event:MouseEvent) : void
+		{
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					// recup du marker qui va être manipulé
+					currentMarker = event.target;
+					ofsClickX = viewport.mouseX - currentMarker.x;
+					ofsClickY = viewport.mouseY - currentMarker.y;
+					stage.addEventListener(MouseEvent.MOUSE_MOVE, handleMouseMarker);
+					stage.addEventListener(MouseEvent.MOUSE_UP, handleMouseMarker);
+					break;
+				case MouseEvent.MOUSE_UP :
+					// TODO recup nouvelle taille et maj
+					stage.removeEventListener(MouseEvent.MOUSE_MOVE, handleMouseMarker);
+					stage.removeEventListener(MouseEvent.MOUSE_UP, handleMouseMarker);
+					currentMarker = null;
+					break;
+				case MouseEvent.MOUSE_MOVE :
+					var mox:int = viewport.mouseX - ofsClickX;
+					var moy:int = viewport.mouseY - ofsClickY;
+					var n:Number;
+					switch (currentMarker)
+					{
+						case dimWidth :
+							n = int(mox / cellSize * 10) / 10;
+							dimWidth.x = n * cellSize;
+							dimWidth.y = n * cellSize / 2;
+							tiWidth.value = n;
+							break;
+						case dimDepth :
+							n = int(mox / cellSize * 10) / 10;
+							dimDepth.x = n * cellSize;
+							dimDepth.y = -n * cellSize / 2;
+							tiDepth.value = -n;
+							break;
+						case dimHeight :
+							n = int(moy / cellSize * 10) / 10;
+							dimHeight.y = n * cellSize;
+							tiHeight.value = -n;
+							break;
+					}
+					break;
+			}
+		}
+		
+		/**
+		 * Changement dimension depuis saisie manuelle
+		 *	@param event Event
+		 */
+		private function dimChange (event:Event) : void
+		{
+			var nv:Number = Number(event.target.value);
+			switch (event.target)
+			{
+				case tiWidth :
+					dimWidth.x = nv * cellSize;
+					dimWidth.y = nv * cellSize / 2;
+					break;
+				case tiDepth :
+					dimDepth.x = -nv * cellSize;
+					dimDepth.y = nv * cellSize / 2;
+					break;
+				case tiHeight :
+					dimHeight.y = -nv * cellSize;
+					break;							
+			}
+		}
+		
+		/**
+		 * Déplacement de la vue
+		 *	@param event MouseEvent
+		 */
+		private var tClick:int;
+		private function handleMousePan (event:MouseEvent) : void
+		{
+			switch (event.type)
+			{
+				case MouseEvent.MOUSE_DOWN :
+					var t:int = getTimer();
+					if (t - tClick < 600) {
+						viewport.x = viewContainer.width / 2;
+						viewport.y = viewContainer.height / 2;
+					}
+					else {
+						viewport.startDrag();
+					}
+					tClick = t;
+					break;
+				case MouseEvent.MOUSE_UP :
+					viewport.stopDrag();
+					break;
+			}
+		}
+		
+		/**
+		 * Gestion touches, p pour pan view
+		 *	@param event KeyboardEvent
+		 */
+		private function keyBoardHandler (event:KeyboardEvent) : void
+		{
+			var kc:uint = event.keyCode;
+
+			if (kc == 80) // onest sur la touche p
+			{
+				if (event.type == KeyboardEvent.KEY_DOWN)
+				{
+					stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false);
+					stage.addEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false, 0, true);
+					stage.addEventListener(MouseEvent.MOUSE_DOWN, handleMousePan, true, 500, true);
+					stage.addEventListener(MouseEvent.MOUSE_UP, handleMousePan, true, 500, true);
+				}
+				else
+				{
+					stage.removeEventListener(KeyboardEvent.KEY_UP, keyBoardHandler, false);
+					stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+					stage.removeEventListener(MouseEvent.MOUSE_DOWN, handleMousePan, true);
+					stage.removeEventListener(MouseEvent.MOUSE_UP, handleMousePan, true);
+					viewport.stopDrag();
+				}
+			}
+		}		
+		
+		
+		/**
+		 * Réception sauvegarde
+		 *	@param fault Object
+		 */
+		private function handleModelSaved (result:Object) : void
+		{
+			enabled = true;
+			if (result)
+			{
+				// Ou cas ou l'objet vient d'être crée
+				// (première sauvegarde)
+				if (!_objectModel.id) lbId.text = _objectModel.id;
+			}
+			else {
+				Alert.show("", "Erreur lors de la sauvegarde de l'objet");
+			}
+		}
+		
+		/**
+		 * Réception chargement du document modèle d'objet
+		 *	@param result Object
+		 */
+		private function onModelLoaded (result:Object) : void
+		{
+			enabled = true;
+			if (result is IObjectDocument) objectModel = result as IObjectDocument;
+			else
+				Alert.show("","Erreur lors du chargement du modèle d'objet");
+		}
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------
+		
+		/**
+		 * Chargement d'un model d'objet
+		 *	@param id String
+		 */
+		private function loadModel (modelId:String) : void
+		{
+			enabled = false;
+			services.load({keys:modelId}, onModelLoaded);
+		}
+		
+		/**
+		 *	@private
+		 * Sauvegarde du model d'objet en cours
+		 */
+		private function saveModel () : void
+		{
+			if (!_objectModel)
+			{
+				try
+				{
+					_objectModel = services.create() as IObjectDocument;
+				}
+				catch (e:Error)
+				{
+					Alert.show(	"Erreur des services d'objets",
+								"Impossible de créer un modèle d'objet");
+				}
+			}
+
+			enabled = false;
+			_objectModel.category = cbLibrary.selectedLabel;
+			_objectModel.title = tiTitle.text;
+			_objectModel.assets = tiAssetUrl.text;
+			_objectModel.ofsX = loader.x;
+			_objectModel.ofsY = loader.y;
+			_objectModel.width = tiWidth.value;
+			_objectModel.depth = tiDepth.value;
+			_objectModel.height = tiHeight.value;
+			_objectModel.save(null, handleModelSaved, handleModelSaved);
+		}
+		
+		/**
+		 * Crée un nouvel objet
+		 *	@private
+		 */
+		private function newModel () : void
+		{
+			// Reset form
+			tiTitle.text = "";
+			tiAssetUrl.text = tiAssetUrl.text.substring(0, tiAssetUrl.text.lastIndexOf("/") + 1);
+			lbId.text = "";
+			loader.source = null;
+
+			var o:Object =
+			{
+				category:cbLibrary.selectedLabel,
+				title:tiTitle.text,
+				assets:tiAssetUrl.text,
+				ofsX:loader.x,
+				ofsY:loader.y,
+				width:tiWidth.value,
+				depth:tiDepth.value,
+				height:tiHeight.value
+			};
+			
+			try
+			{
+				objectModel = services.create(o) as IObjectDocument;
+			}
+			catch (e:Error)
+			{
+				Alert.show(	"Erreur des services d'objets",
+							"Impossible de créer un modèle d'objet");
+			}
+		}
+		
+		/**
+		 * Ecoute clavier
+		 *	@private
+		 */
+		private function onAdd () : void
+		{
+			if (parentApplication)
+				assetsPath = parentApplication.configProxy.getContent("tiles_path");
+			if (stage)
+				stage.addEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false, 0, true);
+		}
+		
+		/**
+		 * Nettoyage ecoute clavier
+		 *	@private
+		 */
+		private function onRemove () : void
+		{
+			stage.removeEventListener(KeyboardEvent.KEY_DOWN, keyBoardHandler, false);
+			
+			//
+			_objectModel = null;
+			loader.x = 0;
+			loader.y = 0;
+			loader.source = null;			
+			// maj infos
+			lbId.text = "";
+			tiTitle.text = "";
+			tiAssetUrl.text = "";
+			tiWidth.value = 1;
+			tiDepth.value = 1;
+			tiHeight.value = 1;
+			cbLibrary.selectedItem = null;			
+			// maj reglettes
+			dimWidth.x = cellSize;
+			dimWidth.y = cellSize / 2;
+			dimDepth.x = -cellSize;
+			dimDepth.y = cellSize / 2;
+			dimHeight.y = -cellSize;
+		}
+		
+		/**
+		*	Event handler for Creation Complete event.
+		*	@see mx.events.FlexEvent
+		*/
+		private function onCreationComplete (event:FlexEvent) : void
+		{
+			viewport.graphics.lineStyle(1, 0x777777);
+			var ncell:int = 20;
+			var wc:int = ncell * 30;
+			var hc:int = wc / 2;
+			var ofx:int;
+			var ofy:int;
+			for (var i:int = 0; i <= ncell; i++)
+			{
+				ofx = i * 30;
+				ofy = i * 15;
+				viewport.graphics.moveTo(-ofx, ofy);
+				viewport.graphics.lineTo(wc - ofx, hc + ofy);
+				viewport.graphics.moveTo(ofx, ofy);
+				viewport.graphics.lineTo(ofx - wc, hc + ofy);
+			}
+			
+//			var mask:Shape = new Shape();
+			viewportBackGround.graphics.beginFill(0x000000);
+			viewportBackGround.graphics.drawRect(0, 0, viewContainer.width, viewContainer.height);
+			viewportBackGround.graphics.endFill();
+			viewport.mask = viewportBackGround;
+			
+			// marqueurs
+			// > largeur
+			dimWidth.graphics.beginFill(0x0000FF, .5);
+			dimWidth.graphics.drawCircle(20, -20, 10);
+			dimWidth.graphics.endFill();
+			dimWidth.graphics.moveTo(0, 0);			
+			dimWidth.graphics.lineStyle(1, 0x0000FF, .7);
+			dimWidth.graphics.lineTo(-wc, wc / 2);
+
+			// > profondeur
+			dimDepth.graphics.beginFill(0x00FF00, .5);
+			dimDepth.graphics.drawCircle(-20, -20, 10);
+			dimDepth.graphics.endFill();
+			dimDepth.graphics.moveTo(0,0);
+			dimDepth.graphics.lineStyle(1, 0x00FF00, .7);
+			dimDepth.graphics.lineTo(wc, wc / 2);
+			
+			// > hauteur
+			dimHeight.graphics.beginFill(0xFF0000, .5);
+			dimHeight.graphics.drawCircle(0, -20, 10);
+			dimHeight.graphics.endFill();
+			dimHeight.graphics.moveTo(0,0);
+			dimHeight.graphics.lineStyle(1, 0xFF0000, .7);
+			dimHeight.graphics.lineTo(wc, wc / 2);
+			dimHeight.graphics.moveTo(0, 0);
+			dimHeight.graphics.lineTo(-wc, wc / 2);	
+			
+			onAdd();
+		}
+				
+	    ]]>
+	</mx:Script>
+	<mx:Canvas id="viewContainer" width="100%" height="100%" clipContent="true"
+		verticalScrollPolicy="off" horizontalScrollPolicy="off">
+		<mx:Canvas id="viewportBackGround"
+			verticalScrollPolicy="off" horizontalScrollPolicy="off"/>
+		<mx:Canvas id="viewport" clipContent="false"
+			verticalScrollPolicy="off" horizontalScrollPolicy="off"
+			x="{viewContainer.width / 2}" y="{viewContainer.height / 2}">
+			<mx:SWFLoader id="loader"
+				mouseDown="handleMouseLoader(event)" />
+			<mx:Canvas id="dimHeight"
+				mouseDown="handleMouseMarker(event)" />
+			<mx:Canvas id="dimWidth"
+				mouseDown="handleMouseMarker(event)" />
+			<mx:Canvas id="dimDepth"
+				mouseDown="handleMouseMarker(event)" />
+		</mx:Canvas>
+	</mx:Canvas>
+	<mx:HBox width="100%">
+		<mx:Button width="30" icon="@Embed('icons/add.png')"
+			click="newModel();" toolTip="nouveau" />
+		<mx:Spacer width="40" />
+		<mx:Label id="lbId" />
+		<mx:TextInput id="tiTitle" width="30%" />
+		<mx:TextInput id="tiAssetUrl" width="70%" />
+		<mx:Button id="btReloadAssset" width="30" icon="@Embed('icons/arrow_refresh.png')"
+			click="{loader.source=assetsPath+tiAssetUrl.text}" />
+	</mx:HBox>
+	<mx:HBox width="100%" horizontalAlign="right">
+		<mx:Label text="librairie" />
+		<mx:ComboBox id="cbLibrary" dataProvider="{librarys}" labelField="title"  rowCount="20" />
+		<mx:Label text="width" />
+		<mx:NumericStepper id="tiWidth" stepSize=".1" width="60"
+			change="dimChange(event)" />
+		<mx:Label text="depth" />
+		<mx:NumericStepper id="tiDepth" stepSize=".1" width="60"
+			change="dimChange(event)" />
+		<mx:Label text="height" />
+		<mx:NumericStepper id="tiHeight" stepSize=".1" width="60"
+			change="dimChange(event)" />
+		<mx:Button id="btSave" width="30" icon="@Embed('icons/disk.png')"
+			click="saveModel();" />		
+	</mx:HBox>
+</mx:TitleWindow>

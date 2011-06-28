@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" verticalAlign="bottom">
+
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.managers.PopUpManager;
+		
+		/**
+		 *	Gestion profil joueur
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2010-12-29
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var _pProxy:Object;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+
+		public function set playerProxy (val:Object) : void
+		{
+			_pProxy = val;
+			
+			// maj premier affichage
+			lbPInfo.text = "Joueur n°" + _pProxy.id;
+			ns_level.text = _pProxy.level;
+			ns_0.text = _pProxy.pir;
+			ns_1.text = _pProxy.soc;
+			ns_2.text = _pProxy.eco;
+			ns_3.text = _pProxy.env;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		private function onUpdated (result:Object = null) : void
+		{ enabled = true; }
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------
+		
+		/**
+		 * @private
+		 * Sauvegarde du profil
+		 */
+//		private var bonus:Object = {};		
+		private function save () : void
+		{
+			enabled = false;
+			var dataDoc:Object = _pProxy.getData();
+			// Niveau
+			dataDoc.level = int(ns_level.text);
+			// Bonus
+			for (var i:int = 0; i < 4; i++)
+			{ dataDoc.bonus[i] = int(this["ns_" + i].text); }
+			
+			dataDoc.save(["level","bonus"], onUpdated);
+		}
+		
+		/**
+		 *	@private
+		 * 	Reset des triggers executés
+		 */
+		private function resetTriggered () : void
+		{
+			// TODO popup liste des triggers executés avec nbr de fois, par scène et toutes
+			// scènes confondues
+			enabled = false;
+			var dataDoc:Object = _pProxy.getData();
+			for (var p:String in dataDoc.actions)
+				dataDoc.actions[p] = null;
+			
+			dataDoc.save(["actions"], onUpdated);
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label id="lbPInfo" fontWeight="bold" />
+	<mx:Label text="Niv." />
+	<mx:TextInput id="ns_level" width="20" restrict="0-9" />
+	<mx:Label text="Pir." />
+	<mx:TextInput id="ns_0" width="30" restrict="0-9" />
+	<mx:Label text="Soc." />
+	<mx:TextInput id="ns_1" width="30" restrict="0-9" />
+	<mx:Label text="Eco." />
+	<mx:TextInput id="ns_2" width="30" restrict="0-9" />
+	<mx:Label text="Env." />
+	<mx:TextInput id="ns_3" width="30" restrict="0-9" />
+	<mx:Button id="btSave" width="40" click="save()" label=""
+		icon="@Embed('icons/lightning_go.png')" toolTip="mettre à jour le profil" />
+	<mx:Button id="btEnv" width="40" label=""
+		icon="@Embed('icons/database_edit.png')" toolTip="Réinitialiser les actions executées"
+		click="resetTriggered();" />
+</mx:HBox>

@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flmp="flexmapeditor.view.components.*"
+	title="... scène !"
+	width="340" height="100%"
+	paddingTop="10"
+	backgroundColor="#E8E8E8"
+	borderAlpha="1"
+	highlightAlphas="[0.0,0]"
+   	borderThicknessLeft="6"
+   	borderThicknessRight="6"
+   	borderThicknessTop="2"
+	addedToStage="onAdded();"
+	removedFromStage="onRemoved();"
+	creationComplete="onAdded();">
+	
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.Event;
+		import mx.controls.Alert;
+		
+		/**
+		 *	Editeur configuration de scène
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2010-10-07
+		 */
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		public function get datamapProxy () : Object
+		{ return parentApplication.datamapProxy; }
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Sauvegarde
+		 *	@private
+		 */
+		public function save () : void
+		{
+			enabled = false;
+			var upd:Array = [];
+			switch (tn.selectedChild)
+			{
+				case bInfo :
+					datamapProxy.getData().title = tiTitle.text;
+					datamapProxy.getData().location = {adress:tiAdress.text,lat:tiLat.text,lon:tiLon.text};
+					upd.push("title","location");
+					break;
+				case bDims :
+					datamapProxy.getData().cellsNumber = {x:nsDimx.value, y:nsDimy.value, z:nsDimz.value};
+					datamapProxy.getData().cellsSize = {width:nsTilew.value, height:nsTileh.value, depth:nsTiled.value};
+					datamapProxy.getData().camera = {xOffset:nsSceneOffsetX.value, yOffset:nsSceneOffsetY.value,scale:nsAvataFactor.value};
+					upd.push("cellsNumber","cellsSize","camera");
+					break;
+				case bFiles :
+					datamapProxy.getData().background = tiBackgroundFile.text;
+					datamapProxy.getData().foreground = tiForegroundFile.text;
+					datamapProxy.getData().music = tiAmbientSoundFile.text;
+					upd.push("background","foreground","music");
+					break;
+			}
+			// On passe par le doc
+			datamapProxy.getData().save(upd, onSaveSuccess, onSaveFault);
+		}
+		
+		/**
+		 * Récupération données géo pour adresse
+		 *	@private
+		 */
+		public function getGEO () : void
+		{
+			if (tiAdress.text.length > 3)
+				geoService.send({address:tiAdress.text, sensor:false});
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * Réception sauvegarde
+		 */
+		private function onSaveSuccess (result:Object) : void
+		{ enabled = true; }
+		
+		private function onSaveFault (fault:Object) : void
+		{
+			enabled = true;
+			Alert.show("", "Erreur lors de la sauvegarde configuration de la scène");
+		}
+		
+		/**
+		 * Réception donnée géo
+		 *	@param rpcEvent Object
+		 */
+		private function loadGeoFault (rpcEvent:Object) : void
+		{ trace("!! loadGeoFault, erreur"); }
+		
+		private function loadGeoSuccess (rpcEvent:Object) : void
+		{
+			if (String(rpcEvent.result.status) != "OK")
+			{
+				trace("!! loadGeoSuccess, Aucune correspondace trouvée");
+				return;
+			}
+
+			var loc:XML = rpcEvent.result.result.geometry.location[0];
+			tiLat.text = loc.lat;
+			tiLon.text = loc.lng;
+		}
+		
+		/**
+		 *	@private
+		 * Reception chagement ratio avatar
+		 */
+		private function onAvatarFactorChange () : void
+		{
+			var bob:Object = parentApplication.isosceneHelper.getTile("bob");
+			var factor:Number = nsAvataFactor.value;
+			var tview:Object = bob.getView().asset;
+			tview.scaleX = tview.scaleY = factor;
+			tview.y = nsTileh.value / 2;
+			bob.speed = 90 * factor;
+		}
+		
+		/**
+		 * Changement onglet, mise à jour formulaire
+		 *	@param event Event
+		 */
+		private function onTabChange (event:Event) : void
+		{ onAdded(); }
+		
+		/**
+		 *	Réception ajout sur stage
+		 */
+		private function onAdded () : void
+		{
+			if (!datamapProxy) return;
+			
+			try
+			{
+				switch (tn.selectedChild)
+				{
+					case bInfo :
+						tiTitle.text = datamapProxy.title;
+						var loc:Object = datamapProxy.location;
+						tiAdress.text = loc.adress;
+						tiLat.text = loc.lat;
+						tiLon.text = loc.lon;
+						break;
+					case bDims :
+						nsDimx.value = datamapProxy.dimx;
+						nsDimy.value = datamapProxy.dimy;
+						nsDimz.value = datamapProxy.dimz;
+						nsTilew.value = datamapProxy.tilew;
+						nsTiled.value = datamapProxy.tiled;
+						nsTileh.value = datamapProxy.tileh;
+						nsAvataFactor.value = datamapProxy.avatarFactor;
+						nsSceneOffsetX.value = datamapProxy.sceneOffsetX;
+						nsSceneOffsetY.value = datamapProxy.sceneOffsetY;
+						break;
+					case bFiles :
+						tiBackgroundFile.text = datamapProxy.backgroundFile;
+						tiForegroundFile.text = datamapProxy.foregroundFile;
+						tiAmbientSoundFile.text = datamapProxy.ambientSoundFile;
+						break;
+				}				
+			} catch (e:Error) {};
+		}
+		
+		/**
+		 *	Réception suppression du stage
+		 */
+		private function onRemoved () : void
+		{
+			
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<!-- 
+	http://maps.googleapis.com/maps/api/geocode/json?address=1600+Amphitheatre+Parkway,+Mountain+View,+CA&sensor=true_or_false
+	 -->
+	
+	<mx:HTTPService id="geoService" url="http://maps.googleapis.com/maps/api/geocode/xml"
+	            	fault="loadGeoFault(event);" result="loadGeoSuccess(event)" resultFormat="e4x" />
+	
+	<mx:TabNavigator id="tn" width="100%" height="100%" borderStyle="none"
+			paddingTop="10" paddingLeft="10" paddingRight="10" paddingBottom="10" backgroundColor="#F7F7F7"
+			change="onTabChange(event);">
+		<mx:Box id="bInfo" label="infos">
+			<mx:Label text="Titre de la scène" />
+			<mx:TextInput id="tiTitle" width="100%" />
+			<mx:Spacer height="10" />	
+			<!-- <mx:Label text="Identifiant titre de la scène (DB)" />
+			<mx:TextInput id="tiDBTitle" width="100%" /> -->
+			<mx:Spacer height="10" />
+			<!-- adresse -->
+			<mx:HBox width="100%">
+				<mx:Label text="Adresse" width="100%" />
+				<mx:Button label="obtenir lat/lon" click="getGEO()" />
+			</mx:HBox>
+			<mx:TextInput id="tiAdress" width="100%"/>
+			<!-- <mx:Spacer height="10" /> -->
+			<!-- lattitude / longitude-->	
+			<mx:Label text="Latittude / Longitude" />
+			<mx:HBox>
+				<mx:TextInput id="tiLat" width="150" />
+				<mx:TextInput id="tiLon" width="150" />
+			</mx:HBox>
+		</mx:Box>
+		<mx:Box id="bDims" label="dimensions">
+			<!-- dimension grille -->
+			<mx:Label text="Dimensions grille" />
+			<mx:HBox>
+				<mx:NumericStepper id="nsDimx" minimum="1" maximum="1000" />
+				<mx:NumericStepper id="nsDimy" minimum="1" maximum="1000" />
+				<mx:NumericStepper id="nsDimz" minimum="1" maximum="1000" />
+			</mx:HBox>
+			<mx:Spacer height="10" />
+			<!-- dimensions cellules -->
+			<mx:Label text="Dimensions celules" />
+			<mx:HBox>
+				<mx:NumericStepper id="nsTilew" minimum="10" maximum="1000" />
+				<mx:NumericStepper id="nsTileh" minimum="5" maximum="1000" />
+				<mx:NumericStepper id="nsTiled" minimum="5" maximum="1000" />
+			</mx:HBox>
+			<mx:Spacer height="10" />	
+			<!-- ratio avatar -->
+			<mx:HBox>
+				<mx:Label text="Ratio taille avatar " />
+				<mx:NumericStepper id="nsAvataFactor" stepSize=".05" change="onAvatarFactorChange()" />
+			</mx:HBox>
+			<mx:Spacer height="10" />
+			<!-- offsets des calques -->
+			<mx:HBox>
+				<mx:Label text="Offsets des calques" />
+				<mx:NumericStepper id="nsSceneOffsetX" minimum="-1000" maximum="1000" />
+				<mx:NumericStepper id="nsSceneOffsetY" minimum="-1000" maximum="1000" />
+			</mx:HBox>
+		</mx:Box>
+		<mx:Box id="bFiles" label="bg/fg/son">
+			<mx:Label text="Fichier arrière plan" />
+			<mx:TextInput id="tiBackgroundFile" width="100%" />
+			<mx:Spacer height="10" />
+			<mx:Label text="Fichier avant plan" />
+			<mx:TextInput id="tiForegroundFile" width="100%" />
+			<mx:Spacer height="10" />	
+			<mx:Label text="Fichier ambiance sonore" />
+			<mx:TextInput id="tiAmbientSoundFile" width="100%"/>
+		</mx:Box>
+	</mx:TabNavigator>
+	<!-- 
+		dimensions grille
+		dimensions céllules
+		ratio avatar
+		adresse
+		background
+		foreground
+		sound
+		titre
+		titre en DB
+		adresse + btn preview dans google
+		sceneOffsetX
+		sceneOffsetY
+	 -->
+</mx:Panel>

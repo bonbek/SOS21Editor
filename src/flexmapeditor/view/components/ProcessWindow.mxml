@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	title="Processing" showCloseButton="true" close="onClosePopUp();">
+	
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+
+		import mx.managers.PopUpManager;
+		
+		/**
+		*	Description
+		*
+		*	@langversion ActionScript 3.0
+		*	@playerversion Flash 9.0
+		*
+		*	@author Christopher Corbin
+		*	@since  2011-03-22
+		*/
+		
+		public var strLog:String = "";
+		
+		public function trace (msg:String) : void
+		{
+			output.text += "\n" + msg;
+//			strLog += "\n" + msg;
+		}
+		
+		/**
+		*	Event handler for Creation Complete event.
+		*	
+		*	@see mx.events.CloseEvent
+		*/
+		private function onClosePopUp() : void {
+			PopUpManager.removePopUp(this);
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:TextArea id="output" width ="100%" height="100%" valueCommit="output.verticalScrollPosition=output.maxVerticalScrollPosition" />
+	<!-- <mx:TextArea id=”ta1″ text=”{ta2.text}” valueCommit=”ta1.verticalScrollPosition=ta1.maxVerticalScrollPosition” /> -->
+</mx:TitleWindow>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- menu principal de l'application -->
+<mx:MenuBar xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:ns="flexmapeditor.view.components.*"
+	labelField="@label"
+	dataProvider="{menuList}"
+	focusEnabled="false"
+	creationComplete="onCreationComplete();" >
+	
+	<mx:Script>
+	        <![CDATA[
+	
+	            import mx.collections.*;
+				
+	            [Bindable]
+	            public var menuList:XMLListCollection;
+				
+	            /**
+	             *	Reception event composant initialisé
+	             *	Remplissage des menus
+	             *	@private
+	             */
+	            private function onCreationComplete():void
+				{
+					var li:XMLList =
+	                <>
+	                    <menuitem label="Scene">
+	                        <menuitem label="Ouvrir" data="open" />
+							<menuitem label="Nouvelle" data="new" />
+	                    </menuitem>
+	                    <menuitem label="Editer">
+							<menuitem label="les tiles" data="editTiles" type="radio" groupName="edit" />
+							<menuitem label="la grille de collisions" data="editCollisions" type="radio" groupName="edit" />
+	                        <menuitem label="les actions" data="editTrigger" type="radio" groupName="edit" />
+							<menuitem label="propriétés de scène" data="editMapConfig" type="radio" groupName="edit" />
+							<menuitem label="variables" data="editEnv" />
+	                    </menuitem>
+	                    <menuitem label="Affichage">
+							<menuitem label="calque de fond" data="dispBackground" type="check" toggled="true" />
+	                        <menuitem label="calque de premier plan" data="dispForeground" type="check" toggled="true" />
+							<menuitem label="calque des objets" data="dispTiles" type="check" toggled="true" />
+							<menuitem label="objets cachés" data="dispHiddenTiles" type="check" toggled="true" selected="true" />
+							<menuitem label="objets murs" data="dispWall" type="check" toggled="true" />
+							<menuitem label="grille" data="dispGrid" type="check" toggled="false" />
+	                    </menuitem>
+	                </>;
+	
+	                menuList = new XMLListCollection(li);
+	            }
+	
+	         ]]>
+	    </mx:Script>
+	
+	
+</mx:MenuBar>

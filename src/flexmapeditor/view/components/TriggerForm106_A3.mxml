@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	paddingTop="20" paddingLeft="20" paddingBottom="20" paddingRight="20"
+	title="Editer les options déplacer">
+
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.utils.Dictionary;
+		import flash.geom.Point;
+		import flash.events.*;
+		
+		/**
+		 *	Options du formulaire 106
+		 * 	> Action 3 déplacer un objet
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2011-01-05
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var target:Object;
+		private var options:Object;
+		private var _upoint:Object;
+		// état originel du tile
+		private var initTargetStates:Object = {};
+		// fastPreview
+		private var previews:Dictionary = new Dictionary(true);
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+
+		// Internal
+		public var proxy:TriggerForm106;
+		
+		/**
+		 * Ref à un UPoint
+		 */
+		private function get upoint () : Object
+		{
+			if (!_upoint) _upoint = proxy.parentApplication.objectBuilderProxy.createUPoint(0, 0, 0);
+			return _upoint;
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Passage du tile cible et des options d'actions
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function setData (target:Object, options:Object) : void
+		{
+			this.target = target;
+			this.options = options;
+			
+			if (target)
+			{
+				// stockage état initial
+				initTargetStates.p = [target.upos.xu, target.upos.yu, target.upos.zu];
+				if (options.p)
+				{
+					var upos:Object = upoint;
+					var pos:Array = options.p.split("/");
+					upos.xu = nsX.value = pos[0];
+					upos.yu = nsY.value = pos[1];
+					upos.zu = nsZ.value = pos[2];
+					target.umove(upos);
+
+					return;
+				}		
+			}
+			
+			nsX.value = 0;
+			nsY.value = 0;
+			nsZ.value = 0;
+		}
+		
+		/**
+		 * Aperçu "rapide" des effets de l'action
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function fastPreview (target:Object, options:Object) : void
+		{
+			if (!target) return;
+			
+			var opos:Array = [target.upos.xu, target.upos.yu, target.upos.zu];
+			var upos:Object = upoint;
+			if (options.p)
+			{
+				var pos:Array = options.p.split("/");
+				if (!pos) return
+
+				upos.xu = pos[0];
+				upos.yu = pos[1];
+				upos.zu = pos[2];
+				target.umove(upos);
+
+				// stockage preview
+				if (!previews[target]) previews[target] = opos;				
+			}
+		}
+		
+		/**
+		 *	Remise en l'état de toutes les previews
+		 */
+		public function disposeAllPreviews () : void
+		{
+			for (var t:Object in previews)
+				disposePreview(t, null);
+		}
+		
+		/**
+		 * 	Remise en l'état d'une preview
+		 *	@param target Object
+		 *	@param options Object
+		 */
+		public function disposePreview (target:Object, options:Object) : void
+		{
+			var pos:Array = previews[target];
+			if (!pos) return;
+			
+			var upos:Object = upoint;
+			upos.xu = pos[0];
+			upos.yu = pos[1];
+			upos.zu = pos[2];
+			target.umove(upos);
+			
+			delete previews[target];
+		}
+		
+		/**
+		 * @private
+		 * Remise en l'état du tile cible
+		 */
+		public function dispose () : void
+		{
+			// au cas ou pour plus de surreter de rendre la main
+			btSelectPos.selected = false;
+			parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, onSelectPos, false);
+			
+			if (!target) return;
+
+			var pos:Array = initTargetStates.p;
+			if (!pos) return;
+
+			var upos:Object = upoint;
+			upos.xu = pos[0];
+			upos.yu = pos[1];
+			upos.zu = pos[2];
+			target.umove(upos);			
+			target = options = null;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	@private
+		 */
+		private function btSelectPosHandler () : void
+		{
+			if (btSelectPos.selected) {
+				// écoute cliques
+				proxy.parentApplication.viewport.addEventListener(MouseEvent.MOUSE_UP, onSelectPos, false, 500, true);
+			}
+			else {
+				parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, onSelectPos, false);
+			}
+		}
+		
+		/**
+		 *  Choix position de déplacement
+		 *	@param event MouseEvent
+		 */
+		public function onSelectPos (event:MouseEvent) : void
+		{
+			event.stopImmediatePropagation();
+			event.preventDefault();
+
+			var p:Point = proxy.parentApplication.isosceneHelper.component.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
+			options.p = [p.x, p.y, nsZ.value, 0].join("/");
+			/*nsX.value = options.p[0];
+						nsY.value = options.p[1];
+						nsZ.value = options.p[2];*/
+			fastPreview(target, options);
+		} 
+		
+		/**
+		 *	Mise à jour depuis steppers
+		 */
+		private function onManualChange () : void
+		{
+			options.p = [nsX.value, nsY.value, nsZ.value, 0].join("/");
+			fastPreview(target, options);
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:Button id="btSelectPos" label="Selection de la position" toggle="true"
+		change="btSelectPosHandler();" />
+	<mx:HBox>
+		<mx:Label text="x" />
+		<mx:NumericStepper id="nsX" stepSize=".1" maximum="10000" change="onManualChange()" />
+		<mx:Label text="y" />
+		<mx:NumericStepper id="nsY" stepSize=".1" maximum="10000" change="onManualChange()" />
+		<mx:Label text="z" />
+		<mx:NumericStepper id="nsZ" stepSize=".1" maximum="10000" change="onManualChange()" />
+	</mx:HBox>
+	
+	<mx:Label text="! Relachez le le bouton pour reprendre la main" />
+	
+</mx:TitleWindow>
