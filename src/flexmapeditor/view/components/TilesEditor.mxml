@@ -547,13 +547,8 @@
 			datamapProxy = parentApplication.datamapProxy;
 			objectBuilderProxy = parentApplication.objectBuilderProxy;
 			
-			spriteEditor =  new SpriteEditor();
-//			spriteEditor.gateway = parentApplication.gateway;			
-			/*spriteEditor.width = 600;
-			spriteEditor.height = 400;*/
-			
+			spriteEditor =  new SpriteEditor();			
 			tlTilesList.addEventListener("itemClick", tileLibraryHandler);
-//			parentApplication.gateway.call( "sos21Services.getTileCategoryList", new Responder(onCategoryResult, onFault));
 		}
 		
 		//---------------------------------------

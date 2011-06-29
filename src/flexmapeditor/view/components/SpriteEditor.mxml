@@ -59,8 +59,7 @@
 		
 		[Bindable]
 		public var librarys:ArrayCollection;
-				
-//		public var gateway:Object;
+
 		public var assetsPath:String;
 		public var cellSize:int = 30;
 		public var currentLib:int;

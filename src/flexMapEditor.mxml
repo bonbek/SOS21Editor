@@ -81,7 +81,6 @@
 		//---------------------------------------
 		
 		// connection amfphp
-//		private var _gateway:NetConnection;
 		private var _core:Object;
 		// _facade de la core
 		private var _facade:Object;
@@ -471,12 +470,6 @@
 			_facade.publicChannel.removeEventListener(EventList.APPLICATION_STARTUP, onCoreInitialized, false);
 			
 			configProxy = _facade.getProxy("configProxy");
-			// connection remoting
-			var rhost:String = configProxy.getContent("services_path");
-			_gateway = new NetConnection();
-			_gateway.objectEncoding = ObjectEncoding.AMF0;
-			_gateway.connect(rhost);
-			_gateway.addHeader( "Credentials", false, {userid: "lievre", password: "vert"} );
 			
 			// stockage des refs
 			triggersProxy = _facade.getProxy(ProxyList.TRIGGERS_PROXY)
