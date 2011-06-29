@@ -1549,10 +1549,8 @@
 			addForms[5] = new TriggerForm5();		// formulaire signaler ressources
 			addForms[6] = new TriggerForm6();		// formulaire bouger un tile
 			addForms[7] = new TriggerForm7();		// formulaire tooltip
-			addForms[7].app = parentApplication;
 //			addForms[8] = new TriggerForm8();		// formulaire player video
 			addForms[9] = new TriggerForm9();		// formulaire popup html
-			addForms[9].app = parentApplication;
 			addForms[10] = new TriggerForm10();		// formulaire dispatch event
 			addForms[101] = new TriggerForm101();	// formulaire mini jeu
 			addForms[102] = new TriggerForm102();	// formulaire player vimeo

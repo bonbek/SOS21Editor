@@ -21,19 +21,6 @@
 		 */
 		
 		//---------------------------------------
-		// PUBLIC VARIABLES
-		//---------------------------------------
-		
-		public var app:Object;
-		
-		// dp contenu texte du tooltip
-		[Bindable]
-		public var textAreaContent:String = "";
-		// dp titre / info
-		[Bindable]
-		public var titleText:String = "";
-		
-		//---------------------------------------
 		// GETTER / SETTERS
 		//---------------------------------------
 		
@@ -64,16 +51,13 @@
 		 * @private
 		 */
 		public function getSarfeArguments():Array
-		{
-			return ["id", "bgColor", "textColor"];
-		}
+		{ return ["text", "bgColor", "textColor"]; }
 		
 		/**
 		 *	Appelé au changement du trigger à éditer
-		 * 
 		 *	@private
 		 */
-		public function safeSave():void
+		public function safeSave () : void
 		{ }
 		
 		/**
@@ -84,35 +68,27 @@
 		 *	@private
 		 */
 		public function onDeleteTrigger(trigger:Object = null):void
-		{
-			trace("onDeleteTrigger", trigger);
-			var tr:Object = trigger ? trigger : _trigger;
-			var id:int = tr.arguments["id"];
-			if (id)
-				app.gateway.call( "sos21Services.deleteContent", new Responder(onDataDelete, onDataDelete), id);
-		}
+		{ }
 		
 		/**
 		 *	Appelé par TriggersEditor avant la sauvegarde
 		 *	@private
 		 */
-		public function updateOnSave():void
+		public function updateOnSave () : void
 		{ }
 		
 		/**
 		 *	Sauvegarde le texte d'étiquette dans la DB
 		 */
-		public function saveTooltipText():void
+		public function saveTooltipText () : void
 		{
 			// suprime les sauts de lignes
 			var txt:String = texArea.text;
 			txt = txt.replace(/[\r]/g, "");
 			txt = txt.replace(/[\n]/g, "");
 			txt = txt.replace(/[\r\n]/g, "");
-									
-			// sauvergarde du text dans la DB
-			var id:int = _trigger.arguments["id"];
-			parentApplication.gateway.call( "sos21Services.saveContent", new Responder(onDataSaved, onDataSaved), id, txt);
+			// Maj trigger
+			_trigger.arguments["text"] = txt;
 		}
 		
 		//---------------------------------------
@@ -120,90 +96,20 @@
 		//---------------------------------------
 		
 		/**
-		 *	Réception event remoting après tentative de suppression
-		 *  d'une entrée
-		 *	@param res Object
-		 */
-		private function onDataDelete(res:Object):void
-		{
-			var suc:Boolean = Boolean(res);
-			if (res)
-				trace("--@ contenu tooltip db::contents > id " + res + " supprimé" );
-			else
-				trace("-!! echec de la suppression contenu tooltip db:contents > id " + res);
-		}
-		
-		/**
-		 *  Réception event remoting après tentative de sauvegarde
-		 *	@param result Boolean
-		 */
-		private function onDataSaved(success:Boolean):void
-		{
-			var cid:int = _trigger.arguments["id"];
-			if (success)
-				trace("--@ contenu tooltip " + _trigger.id + " sauvegardé (db::contents id " + _trigger.arguments['id'] + ")");
-			else
-				trace("-!! echec de la sauvergarde contenu tooltip " + _trigger.id + "(db::contents id " + _trigger.arguments['id'] + ")");
-		}
-		
-		private function onRecieveContent(content:Object):void
-		{
-			textAreaContent = content.body;
-			this.visible = true;
-		}
-		
-		/**
-		 *  Réception event remoting à l'insertion d'un nouvel eneregistrement
-		 *  dans la table content, typiquement quand le trigger associé à cette
-		 *  classe n'avais pas d'identifiant de liaison à un contenu; 
-		 *	@param result Object
-		 */
-		private function onNewContentCreated(result:Object):void
-		{
-			if (result > 1)
-			{
-				// mise à jour de l'affichage & data;
-				_trigger.arguments["id"] = result;
-				titleText = "texte de l'étiquette (id DB " + _trigger.arguments["id"] + ")";
-				texArea.text = "un nouveau texte d'étiquette";
-				this.visible = true;
-			} else {
-				// erreur
-				titleText = "une erreur est survenue, hopla, il faut recharger la page :-s ";
-			}
-		}
-		
-		/**
 		 *	Initialisation du composant
 		 *	@see mx.events.FlexEvent
 		 */
 		private function onCreationComplete(event:FlexEvent = null) : void
 		{ 
-			firstInit = false
-			if (!_trigger.arguments["id"]) // on à pas de ref contenu à la DB
-			{
-				// on lance la créa d'un nouvelle entrée dans la DB tooltip map26 - trigger 39
-				var tit:String = "tooltip map" + parentApplication.datamapProxy.getData().id + " - trigger " + _trigger.id;
-				parentApplication.gateway.call( "sos21Services.insertContent", new Responder(onNewContentCreated, onNewContentCreated), tit);
-			} else {	// on a une ref, on la recup
-				// mise à jour du champ info
-				titleText = "texte de l'étiquette (id DB " + _trigger.arguments["id"] + ")";
-				parentApplication.gateway.call( "sos21Services.getContent", new Responder(onRecieveContent, onRecieveContent), _trigger.arguments["id"]);
-			}
-			this.visible = false;
+			firstInit = false;
+			texArea.text = _trigger.arguments["text"]	? _trigger.arguments["text"]
+														: "Nouvelle étiquette";
 		}
 
 	    ]]>
 	</mx:Script>
 
-	<mx:HBox width="100%">
-		<mx:Label width="100%" text="{titleText}" />
-		<mx:Button icon="@Embed('icons/disk.png')"
-					width="24"
-					label=""
-					toolTip="sauvegarder le texte d'étiquette"
-					click="saveTooltipText();" />
-	</mx:HBox>
+	<mx:Label width="100%" text="Texte de l'étiquette" />
 	<mx:TextArea id="texArea" width="100%" height="100"
-				editable="true" text="{textAreaContent}" />
+				editable="true" change="saveTooltipText()"/>
 </mx:VBox>
