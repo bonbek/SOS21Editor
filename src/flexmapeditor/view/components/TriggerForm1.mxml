@@ -174,8 +174,6 @@
 			dpDests.removeAll();
 			dpDestTrans.removeAll();
 			
-			trace(this, "refreshDestsList");
-			
 			// mise à jour liste des destinations
 			if ("dest" in _trigger.arguments)
 			{
@@ -208,6 +206,8 @@
 		 */
 		public function refreshDestTrans () : void
 		{
+			return;
+			
 			dpDestTrans.removeAll();
 
 			var dest:Object = dgDests.selectedItem;
@@ -465,10 +465,8 @@
 		private function onCreationComplete () : void
 		{			
 			// on recup la liste des maps
-			parentApplication.serverProxy.load(	"place", {keys:"all", fields:["id", "title"]},
-												loadSceneListSuccess, loadSceneListFault	);
-
-//			parentApplication.gateway.call( "sos21Services.getTransportationList", new Responder(onTransportationListResult, onTransportationListFault));
+			parentApplication.serverProxy.getServices("place").load({fields:["id", "title"]},
+																	loadSceneListSuccess, loadSceneListFault);
 		}
 
 	    ]]>
