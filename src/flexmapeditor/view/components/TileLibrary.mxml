@@ -77,12 +77,13 @@
 		 * Mise à jour de la librairie
 		 *	@param data Object liste des data tile
 		 */
-		public function updateLibrary (data:Array) : void
+		public function updateLibrary (data:Object) : void
 		{
 			if (!enabled) return;
 
 			clear();
-			if (data.length < 1) return;
+			var res:Array = data is Array ? data as Array : [data];
+			if (res.length < 1) return;
 			
 			// freeze du composant
 			enabled = false;
@@ -92,7 +93,7 @@
 			
 			var path:String = parentApplication.configProxy.getContent("tiles_path");
 			// chargement des assets
-			for each (var tileData:Object in data)
+			for each (var tileData:Object in res)
 			{
 				// injection bon chemin
 				tileData.assets = path + tileData.assets;
