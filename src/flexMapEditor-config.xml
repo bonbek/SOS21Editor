@@ -17,7 +17,7 @@
 		</library-path>
 		
 		<source-path append="true">
-			<path-element>../../core/lib/src/</path-element>
+			<path-element>../../client/lib/src/</path-element>
 			<path-element>../lib/src/</path-element>
 		</source-path>
 		
