@@ -520,6 +520,7 @@
 			// creation du TriggerProperties
 			var dt:Object =	{	id:trid, classId:iclassId, tileRefId:stileRefId,
 								fireType:ifireType, arguments:oarguments ? oarguments : {}	};
+			if (editedLevel > 0) dt.lev = editedLevel;
 			// ajout du trigger au proxy
 			var trprop:Object = triggersProxy.createTrigger(dt);
 			
@@ -1596,7 +1597,7 @@
 		 *	@return Boolean
 		 */
 		private function validForEdit (tr:Object) : Boolean
-		{			
+		{
 			return	((editedDomain == 1 && tr.id > 0) || (editedDomain == 0 && tr.id < 0))
 					&& (editedLevel == 0 || editedLevel == tr.level);
 		}
