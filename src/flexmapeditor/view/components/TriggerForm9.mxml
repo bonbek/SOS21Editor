@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flmp="flexmapeditor.view.components.*"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.net.Responder;
+		import flash.events.MouseEvent;
+		
+		import mx.events.FlexEvent;
+		import mx.controls.Text;
+		import mx.events.ItemClickEvent;
+		import mx.managers.PopUpManager;
+		import mx.events.CloseEvent;
+		
+		/**
+		 *	Formulaire additionnel pour les triggers popup html
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		//---------------------------------------
+		// PUBLIC VARIABLES
+		//---------------------------------------
+
+		[Embed("icons/icon_page_edit.png")]
+		public var editIcon:Class;
+		
+		// dp boutons éditer / ajouter / supprimer les triggers chainés (au trigger en cours de sélection)
+		[Bindable]
+		public var dpButtonBarPE:Array = [ { icon:editIcon, toolTip:"éditer", data:"edit" } ];
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		private var firstInit:Boolean = true;
+		
+		// trigger en pris en charge par cette instance
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			}		
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{ return ["text", "cb", "skin", "w", "h", "x", "y"]; }
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave () : void
+		{ }
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  Opération de nettoyage, suppression de l'entrée dans
+		 *  la DB
+		 *	@param	trigger	 qui va être supprimé (si pas ref interne est prise)
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Lance la sauvegarde du text dans la DB table contents
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{ }
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * Réception events editeur html
+		 *	@param event Event
+		 */
+		private function handleHtmlEditorEvent (event:Event) : void
+		{
+			switch (true)
+			{
+				case event is CloseEvent :
+					htmlEditor.saveBtn.removeEventListener(MouseEvent.CLICK, handleHtmlEditorEvent, false);
+					htmlEditor.removeEventListener(CloseEvent.CLOSE, handleHtmlEditorEvent, false);
+					break;
+				case event.target == htmlEditor.saveBtn :
+					// recup du html
+					var txt:String = htmlEditor.htmlContent;
+					// mise à jour de la preview + trigger
+					taPreview.htmlText = txt;
+					_trigger.arguments["text"] = txt;
+					break;				
+			}
+		}
+		
+		/**
+		 * Réception changement d'une des options d'affichage
+		 *	@param event Event
+		 */
+		private function onOptionChange (event:Event) : void
+		{
+			switch (event.target)
+			{
+				case ckShowCloseButton :
+					_trigger.arguments["cb"] = ckShowCloseButton.selected;
+					break;
+				case tiSkin :
+					if (tiSkin.text.length > 3) {
+						_trigger.arguments["skin"] = tiSkin.text;
+					}
+					else {
+						delete _trigger.arguments["skin"];
+					}
+					break;
+						
+			}
+		}
+		
+		/**
+		 *	Réception events bar de boutons apperçu / éditer
+		 *	@param event ItemClickEvent
+		 */
+		private function cbuttonBarPEHandler (event:ItemClickEvent) : void
+		{
+			switch (event.item.data)
+			{
+				case "preview" :
+				{					
+					break;
+				}
+				case "edit" :
+				{
+					currentState = "showEditor";
+					PopUpManager.addPopUp(htmlEditor, parentApplication.viewport, true);
+					PopUpManager.centerPopUp(htmlEditor);
+					htmlEditor.htmlContent = taPreview.htmlText;
+					htmlEditor.saveBtn.addEventListener(MouseEvent.CLICK, handleHtmlEditorEvent, false, 0, true);
+					htmlEditor.addEventListener(CloseEvent.CLOSE, handleHtmlEditorEvent, false, 0, true);
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *	Initialisation du composant
+		 */
+		private function onCreationComplete () : void
+		{
+			firstInit = false;
+			// Option texte
+			taPreview.htmlText = _trigger.arguments["text"]	? _trigger.arguments["text"]
+															: "un nouveau contenu html";
+			// Option affichage du boutton fermer	
+			ckShowCloseButton.selected = ("cb" in _trigger.arguments) ? _trigger.arguments["cb"] : true;
+			tiSkin.text = ("skin" in _trigger.arguments) ? _trigger.arguments["skin"] : "";
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<mx:State name="showEditor">
+			<mx:AddChild relativeTo="{parentApplication.viewport}">
+				<flmp:HtmlEditor id="htmlEditor" close="PopUpManager.removePopUp(htmlEditor)" />
+			</mx:AddChild>
+		</mx:State>
+	</mx:states>
+	
+	<mx:HBox width="100%">
+		<mx:Label text="Editer le texte" />
+		<mx:ButtonBar id="cbuttonBarPE"				
+			direction="horizontal" buttonHeight="20" buttonWidth="20"
+			horizontalAlign="right" verticalAlign="middle"
+			horizontalGap="6" verticalGap="0" focusEnabled="false"
+			dataProvider="{dpButtonBarPE}" itemClick="cbuttonBarPEHandler(event);"/>
+	</mx:HBox>
+		<mx:TextArea id="taPreview" width="100%" height="100"
+					editable="false" />
+	<mx:HBox width="100%">
+		<mx:CheckBox id="ckShowCloseButton" label="Afficher boutton fermer" change="onOptionChange(event);" />
+		<mx:Label text="Modèle" />
+		<mx:TextInput id="tiSkin" change="onOptionChange(event);" />
+	</mx:HBox>
+</mx:VBox>

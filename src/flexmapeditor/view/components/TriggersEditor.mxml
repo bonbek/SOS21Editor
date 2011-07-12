@@ -1,0 +1,2174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:flmp="flexmapeditor.view.components.*"
+	width="100%" height="100%"
+	paddingTop="10"
+	addedToStage="onAdd();"
+	removedFromStage="onClose();"
+	creationComplete="onCreationComplete(event);">
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.*;
+		import flash.net.Responder;
+		import flash.display.DisplayObject;
+		import flash.filters.GlowFilter;
+		import flash.utils.Dictionary;
+		import flash.geom.Point;
+		
+		import mx.events.*;
+		import mx.managers.PopUpManager;
+		import mx.collections.ArrayCollection;
+		import mx.core.*;
+		
+		import mx.controls.*;
+
+		import flexlib.mdi.managers.MDIManager;		
+		import flexmapeditor.vo.TriggerProperties;
+		
+		/**
+		*	Module édition des triggers
+		*
+		*	@langversion ActionScript 3.0
+		*	@playerversion Flash 9.0
+		*
+		*/
+
+		//---------------------------------------
+		// PUBLIC VARIABLES
+		//---------------------------------------
+
+		public var isosceneHelper:Object;
+		public var isoscene:Object;
+		public var dataMapProxy:Object;
+		public var collisionGridProxy:Object;
+		public var triggersProxy:Object;
+		public var objectBuilderProxy:Object;
+		
+		public var mapList:Array;
+		public var toolbar:Object;
+		public var viewport:Object;
+		
+		public var triggerExplorer:TriggerExplorer;
+		
+//		public var triggersVisualizer:TriggersVisualizer;
+			
+		// assets boutons éditer / ajouter / supprimer
+		[Embed("icons/cog_add.png")]
+		public var cog_addIcon:Class;
+		[Embed("icons/cog_delete.png")]
+		public var cog_deleteIcon:Class;
+		[Embed("icons/cog_edit.png")]
+		public var cog_editIcon:Class;
+		[Embed("icons/cog_back.png")]
+		public var cog_backIcon:Class;
+		
+		// dp liste des triggers qui sont modifiés par un trigger
+		/*[Bindable]
+		public var dpOverrideTriggers:ArrayCollection = new ArrayCollection([]);*/
+
+		// dp boutons éditer / ajouter / supprimer les triggers chainés (au trigger en cours de sélection)
+		[Bindable]
+		public var dpBtnEAR:Array = [	{ icon:cog_editIcon, toolTip:"éditer l'action sélectionnée", id:"compEdTrigger" },
+										{ icon:cog_addIcon, toolTip:"ajouter une action", id:"compAddTrigger" },
+										{ icon:cog_deleteIcon, toolTip:"supprimer l'action sélectionnée", id:"compRemTrigger"} ];
+
+		// dp boutons éditer / ajouter / supprimer les triggers chainés (au trigger en cours de sélection)
+		[Bindable]
+		public var dpBtnEARAllTList:Array = [	{ icon:cog_editIcon, toolTip:"éditer l'action sélectionnée", id:"allEdTrigger" },
+										{ icon:cog_addIcon, toolTip:"ajouter une action", id:"allAddTrigger" },
+										{ icon:cog_deleteIcon, toolTip:"supprimer l'action sélectionnée", id:"allRemTrigger"} ];
+							
+		// dp boutons ajouter / supprimer des triggers (liste des triggers de l'objet selectionné)
+		[Bindable]
+		public var dpBtnARB:Array = [	{ icon:cog_addIcon, toolTip:"ajouter une action", id:"addTrigger" },
+										{ icon:cog_deleteIcon, toolTip:"supprimer l'action sélectionnée", id:"remTrigger" },
+										{ icon:cog_backIcon, toolTip:"retourner à l'action parente", id:"backToParent" } ];
+		
+		// dp List des triggers chainés au trigger en cours d'édition
+		[Bindable]
+		public var dtChainedTriggers:ArrayCollection = new ArrayCollection([]);
+		
+		[Bindable]
+		public var dtTargetTriggers:ArrayCollection = new ArrayCollection([]);
+		
+		// dp liste des actions (triggers)
+		[Bindable]
+		public var dtTriggerTypes:ArrayCollection = new ArrayCollection([
+										{label:"action blanche", data:0},
+										{label:"bonus joueur", data:103},
+										{label:"changer de scene", data:1},
+										{label:"déplacer un tile", data:6},
+										{label:"étiquette", data:7},
+										{label:"lancer un/des quiz", data:3},
+										{label:"lecteur Viméo", data:102, enabled:false},
+										{label:"lien/mailto/fichier", data:2},
+										{label:"menu contextuel", data:4},
+										{label:"popup html", data:9},
+										{label:"mini jeu", data:101},
+										{label:"signal ressources", data:5, enabled:false},
+										{label:"action(s) temps limité", data:105, enabled:true},
+										{label:"action(s) sur objet(s)", data:106, enabled:true},
+										{label:"jouer un son", data:108, enabled:true},
+										{label:"condition", data:109, enabled:true},
+										{label:"modifier variable(s)", data:107, enabled:true},
+										{label:"::dispatch event::", data:10, enabled:false},
+										{label:"::TScript::", data:104, enabled:true}]);
+										
+
+		// dp pour le combo type de déclenchement
+		[Bindable]
+		public var dtTriggerFireTypes:ArrayCollection;
+		
+		// dp liste de tous les triggers
+		[Bindable]
+		public var dpAllTriggers:ArrayCollection = new ArrayCollection([]);
+		
+		public var dtTriggerFireTypesForCells:ArrayCollection = new ArrayCollection([
+										{label:"", data:0},
+										{label:"roll over", data:0, enabled:false},
+										{label:"roll out", data:1, enabled:false},
+										{label:"click", data:2, enabled:false},
+										{label:"click enfoncé", data:5, enabled:false},
+										{label:"click relaché", data:6, enabled:false},																			
+										{label:"entrée céllule", data:4, enabled:true},
+										{label:"sortie céllule", data:3, enabled:true},
+										{label:"en début de scène", data:8, enabled:false},
+										{label:"chaîné à une action", data:-1, enabled:false}]);
+										
+		public var dtTriggerFireTypesForTiles:ArrayCollection = new ArrayCollection([
+										{label:"", data:0},
+										{label:"roll over", data:0, enabled:true},
+										{label:"roll out", data:1, enabled:true},
+										{label:"click", data:2, enabled:true},
+										{label:"click enfoncé", data:5, enabled:true},
+										{label:"click relaché", data:6, enabled:true},																			
+										{label:"entrée céllule", data:4, enabled:false},
+										{label:"sortie céllule", data:3, enabled:false},
+										{label:"en début de scène", data:8, enabled:true},
+										{label:"continuel", data:9, enabled:true},
+										{label:"chaîné à une action", data:-1, enabled:false}]);
+										
+		public var dtTriggerFireTypesForChain:ArrayCollection = new ArrayCollection([
+										{label:"", data:0, enabled:false},
+										{label:"roll over", data:0, enabled:false},
+										{label:"roll out", data:1, enabled:false},
+										{label:"click", data:2, enabled:false},
+										{label:"click enfoncé", data:5, enabled:false},
+										{label:"click relaché", data:6, enabled:false},																			
+										{label:"entrée céllule", data:4, enabled:false},
+										{label:"sortie céllule", data:3, enabled:false},
+										{label:"en début de scène", data:8, enabled:true},
+										{label:"continuel", data:9, enabled:true},
+										{label:"chaîné à une action", data:-1, enabled:true}]);
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		public function get envProxy () : Object
+		{ return parentApplication.envProxy; }
+		
+		private var _editedLevel:int = 0;
+		[Bindable]
+		public function get editedLevel () : int
+		{ return _editedLevel; }
+
+		public function set editedLevel (val:int) : void
+		{
+			if (_editedLevel == val) return;
+
+			_editedLevel = val;
+			updateTriggersList();
+			clearForm();
+			updateForm(currentTarget);		
+		}
+		
+		
+		public var _editedDomain:int = 1;
+		[Bindable]
+		public function get editedDomain () : int
+		{ return _editedDomain; }
+
+		public function set editedDomain (val:int) : void
+		{ 
+			if (_editedDomain == val) return;
+
+			_editedDomain = val;
+			if (val == 0 && currentTarget)
+			{
+				currentTarget = null;
+			}
+			else
+			{
+				clearForm();
+				updateForm(currentTarget);
+			}
+			updateTriggersList();
+		}
+		
+		/**
+		 *	Retourne un trigger de la scène actuelle
+		 *	@return 
+		 */
+		public function getTrigger (id:String) : Object
+		{ return triggersProxy.getTrigger(id); }
+		
+		/**
+		 *	Mise à jour de la liste des triggers
+		 */
+		public function updateTriggersList () : void
+		{
+			dpAllTriggers.removeAll()
+			var all:Array = triggersProxy.allTriggers;
+			var tr:Object;
+			var schained:String;
+			var schainedTo:String;
+			var n:int = all.length;
+			for (var i:int = 0; i < n; i++)
+			{
+				tr = all[i];
+				if (!validForEdit(tr)) continue;
+
+				schained = tr.hasChainedTrigger ? tr.arguments["onComplete"].join(",") : "";
+				schainedTo = tr.isChained ? tr.chainedTo.join(",") : "";
+				/*dpAllTriggers.addItem({ id:tr.id, title:triggersClass[tr.triggerClassId],
+										source:getSourceDescription(tr), firetype:tr.fireEventType,
+										chained:schained, chainedTo:schainedTo, data:tr });*/
+				dpAllTriggers.addItem({ id:tr.id, label:tr.title ? tr.title : "", title:triggersClass[tr.triggerClassId],
+										source:getSourceDescription(tr), firetype:tr.fireEventType,
+										chained:schained, chainedTo:schainedTo, data:tr });		
+			}
+		}
+		
+		
+		public function refreshTriggerList (toRefresh:Array = null) : void
+		{
+			if (!toRefresh) toRefresh = triggersProxy.allTriggers;
+			
+			var trprop:Object;
+			var itList:Object;
+			
+			var n:int = toRefresh.length;
+			var n2:int = dpAllTriggers.length;
+			
+			while(--n > -1)
+			{
+				trprop = toRefresh[n];
+				while (--n2 > -1)
+				{
+					itList = dpAllTriggers.getItemAt(n2);
+					if (itList.data == trprop)
+					{
+						with (itList)
+						{
+							id:trprop.id;
+							title = triggersClass[trprop.triggerClassId];
+							source = getSourceDescription(trprop);
+							firetype = trprop.fireEventType;
+							chained = trprop.hasChainedTrigger ? trprop.arguments["onComplete"].join(",") : "";
+							chainedTo = trprop.isChained ? trprop.chainedTo.join(",") : "";
+						}
+						dpAllTriggers.itemUpdated(itList);
+						break;
+					}
+				}
+			}
+		}
+		
+		public function get triggersClass():Array {
+//			return _triggersClass;
+			return TriggerProperties.triggerClasses;
+		}
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var _created:Boolean = false;
+		// formulaire additionnel des triggers
+		private var currentAddForm:Object;
+		// objet cible du / des triggers en cours d'édition
+//		private var currentTarget:Object;
+		// liste des id classe de triggers
+		private var _triggersClass:Array = [];
+		// liste des formulaire additionnels
+		public var addForms:Array = [];
+		
+		private var cellTemplate:Object;
+		private var cellTriggerVisible:Boolean = false;
+		private var editFromNotFromMPopup:PopupList;
+		
+		private var fxHasTrigger:GlowFilter = new GlowFilter(0xFF9900);
+		private var fxSelected:GlowFilter = new GlowFilter();
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		private var _currentTarget:Object;		
+		[Bindable]
+		private function get currentTarget () : Object
+		{ return _currentTarget; }
+
+		private function set currentTarget (tile:Object) : void
+		{
+			if (tile == _currentTarget) return;
+
+			if (_currentTarget)
+			{
+				if (triggersProxy.hasTrigger(_currentTarget)) _currentTarget.filters = [fxHasTrigger];
+				else
+					_currentTarget.filters = [];
+			}
+			
+			if (tile)
+			{
+				if ("ID" in tile)
+				{
+
+					if (tile.inGroup)
+					{
+						tile = tile.inGroup.owner;
+						if (tile == _currentTarget) return;
+					}
+
+					updateForm(tile);
+					tile.filters = [fxSelected];
+					_currentTarget = tile;
+					return;
+				}				
+			}
+
+			clearForm();
+			_currentTarget = null;
+		}
+		
+		private var _currentTrigger:Object;
+		[Bindable]
+		public function set currentTrigger (val:Object) : void
+		{
+			_currentTrigger = val;
+			if (currentTrigger) onTabChange();
+		}
+		public function get currentTrigger () : Object
+		{ return _currentTrigger; }
+		
+		/**
+		 * Retourne la liste de tous les triggers, map en cours
+		 * et globaux (persitants)
+		 */
+		public function get allTriggers () : Array
+		{ return triggersProxy.allTriggers; }
+		
+		/**
+		 * Retourne la liste des triggers de la scène en cours
+		 */
+		public function get currentMapTriggers () : Array
+		{ return triggersProxy.currentMapTriggers; }
+		
+		/**
+		 * Retourne la liste de tous les triggers persistants
+		 */
+		public function get persistantTriggers () : Array
+		{ return triggersProxy.allPersistantTriggers; }
+		
+		/**
+		 *  Retourne la liste des triggers de la map en cours pour un niveau
+		 *  donné
+		 *	@param level int
+		 *	@return Array
+		 */
+		public function getCurrentMapTriggersForLevel (level:int) : Array
+		{
+			var olist:Array = currentMapTriggers;
+			// level 0 = tous levels confondus
+			if (level == 0) return olist;
+			
+			var list:Array = [];
+			for each (var t:Object in olist) {
+				if (t.level == level) list.push(t);
+			}
+			
+			return list;
+		}
+		
+		/**
+		 *  Retourne la liste des triggers persitants pour un niveau donné
+		 *	@param level int
+		 *	@return Array
+		 */
+		public function getPersitantTriggersForLevel (level:int) : Array
+		{
+			var olist:Array = persistantTriggers;
+			// level 0 = tous levels confondus
+			if (level == 0) return olist;
+			
+			var list:Array = [];
+			for each (var t:Object in olist) {
+				if (t.level == level) list.push(t);
+			}
+
+			return list;
+		}		
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Affiche les triggers sur grille
+		 * 
+		 */ 
+		public function showGridTriggers():void
+		{
+			var alTriggers:Array = triggersProxy.allTriggers;
+			var n:int = alTriggers.length;
+			while (--n > -1)
+			{
+				var tr:Object = alTriggers[n];
+				var cell:Array = tr.refId.split("-");
+				if (cell.length == 3)
+				{
+					var tv:Object = objectBuilderProxy.createTileView(createCCell());
+					var t:Object = objectBuilderProxy.createAbstractTile(tr.refId, cell[0], cell[1], cell[2], tv);
+					isoscene.debugLayer.addTile(t);
+				}
+			}
+			cellTriggerVisible = true;
+		}
+		
+		public function deselectCurrent () : void
+		{
+			if (currentTarget)
+			{
+				
+			}
+		}
+		
+		/**
+		 *	Cache les triggers sur grille
+		 * 
+		 */
+		public function hideGridTriggers():void
+		{
+			if (isoscene)
+				isoscene.debugLayer.removeAllTile();
+			cellTriggerVisible = false;
+		}
+		
+		/**
+		 * Lance la crétion de triggers sur grille	
+		 *  
+		 */
+		public function createCellsTrigger () : void
+		{
+			viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+			cellTemplate = addCellTrigger(0, 0, 0);
+
+			if (currentTarget) currentTarget.filters = [];
+			currentTarget = null;
+
+			clearForm();
+//			stage.addEventListener(MouseEvent.MOUSE_MOVE, onEditCells, false, 0, true);
+//			stage.addEventListener(MouseEvent.MOUSE_UP, onEditCells, false, 0, true);
+		}
+		
+		/**
+		 * Stop la création de triggers sur grille	
+		 *  
+		 */		
+		public function stopCreateCellsTrigger():void
+		{
+			/*stage.removeEventListener(MouseEvent.MOUSE_MOVE, onEditCells, false)*/;
+			/*stage.removeEventListener(MouseEvent.CLICK, onEditCells, false);*/
+//			isoscene.debugLayer.removeTile(cellTemplate);
+			cellTemplate = null;
+			viewport.addEventListener(MouseEvent.CLICK, sceneMouseHandler, false);
+		}
+		
+		/**
+		 *	Retourne un sprite forme losange
+		 *	@return Sprite
+		 */
+		public function createCCell(col:uint = 0xFF9900):Sprite
+		{
+			var sp:Sprite = new Sprite();
+			
+			sp.graphics.beginFill(col, 0.5);
+			sp.graphics.lineStyle(1, 0x777777);
+
+			sp.graphics.lineTo(dataMapProxy.tilew / 2, dataMapProxy.tileh / 2);
+			sp.graphics.lineTo(0, dataMapProxy.tileh);
+			sp.graphics.lineTo(-(dataMapProxy.tilew / 2), dataMapProxy.tileh / 2);
+			sp.graphics.lineTo(0, 0);
+			
+			return sp;
+		}
+
+		/**
+		 *	Crée un nouveau trigger
+		 * 	Mets à jour l'affichage
+		 *	@return Object	de type TriggerProperties
+		 */
+		public function createTrigger(iclassId:int = 0, stileRefId:String = null, ifireType:int = -1, oarguments:Object = null):Object
+		{
+			// prochain identifiant valide pour nouveau un trigger
+			var trid:int = findNextAvailableTriggerId();	
+									
+			// creation du TriggerProperties
+			var dt:Object =	{	id:trid, classId:iclassId, tileRefId:stileRefId,
+								fireType:ifireType, arguments:oarguments ? oarguments : {}	};
+			if (editedLevel > 0) dt.lev = editedLevel;
+			// ajout du trigger au proxy
+			var trprop:Object = triggersProxy.createTrigger(dt);
+			
+			// mise à jour de l'affichage
+			
+			// > liste de tous les triggers
+			var itDg:Object = { id:trprop.id, title:triggersClass[trprop.triggerClassId], source:getSourceDescription(trprop), data:trprop };
+			dpAllTriggers.addItem(itDg);
+			var itDgInd:int = dpAllTriggers.getItemIndex(itDg);
+			dgAllTriggersList.selectedIndex = itDgInd;
+			dgAllTriggersList.scrollToIndex(itDgInd);
+			if (currentTarget)
+			{
+				// > si target en cours d'édition et que le nouveau trigger est
+				// associé à celle-ci on mets à jour le formulaire avec sélection auto
+				if (currentTarget.ID == stileRefId)
+				{
+					updateForm(trprop, true, true);
+				}
+			}			
+			
+			return trprop;
+		}
+		
+		/**
+		 * Supprime tous les triggers d'une source
+		 *	@param t Object
+		 */
+		public function removeTargetTriggers (tid:String) : void
+		{
+		//	if (triggersProxy.hasTrigger(t)) {
+				var tlist:Array = triggersProxy.getAllTriggers(tid);
+				var toRemList:Array = [];
+				var trprop:Object;
+				var n:int = tlist.length;
+				while (--n > -1)
+				{
+					trprop = tlist[n];
+					if (!trprop.isChained) {
+						toRemList.push(trprop);
+					}
+				}
+				// suppression dans la liste tous le triggers
+				n = toRemList.length;
+				var n2:int = dpAllTriggers.length;
+				while (--n > -1)
+				{
+					trprop = toRemList[n];
+					if (currentState == "onAdd")
+					{
+						while (--n2 > -1)
+						{
+							if (dpAllTriggers.getItemAt(n2).data == trprop)
+							{
+								dpAllTriggers.removeItemAt(n2);
+								break;
+							}
+						}
+					}
+					addForms[trprop.triggerClassId].onDeleteTrigger(trprop);
+					triggersProxy.removeTrigger(trprop.id);
+				}
+//			}
+		}
+		
+		/**
+		 * Retourne le prochain identifiant de trigger valide
+		 *	@return int
+		 */
+		public function findNextAvailableTriggerId () : int
+		{
+			var li:Array = triggersProxy.allTriggers;
+			var n:int = li.length;
+			var i:int = 0;
+			var t:Object;
+
+			// edition des triggers globaux
+			if (editedDomain == 0)
+			{
+				for each (t in li)
+					if (t.id < i) i = t.id;
+				i--;
+			}
+			// édition des triggers de scène
+			else
+			{
+				for each (t in li)
+					if (t.id > i) i = t.id;
+				i++;
+			}
+
+			return i;
+		}
+		
+		/**
+		 * 	Retourne la desciption du sourceTarget d'un trigger;
+		 *	@param trigger Object
+		 *	@return String
+		 */
+		public function getSourceDescription(trigger:Object):String
+		{
+			var refId:String = trigger.refId;
+			var stype:String;
+			if (trigger.refId != "null" && trigger.refId)
+			{
+				if (refId.split("-").length == 3)
+				{
+					stype = "céllule (" + refId + ")";
+				}
+				else
+				{
+					var refObj:Object = parentApplication.isosceneHelper.getTile(refId);
+					if (refObj) stype = refObj.name + " (id:" + refId + ")";
+					else
+						stype = "aucune";
+				}
+			} else {
+				stype = "aucune";
+			}
+						
+			return stype;
+		}
+		
+		public function copyTrigger (t:Object) : Object
+		{
+			var nt:Object = {	id:t.id, triggerClassId:t.triggerClassId, tileRefId:t.refId,
+					fireType:t.fireType	};
+			
+			if (t.inactiveFromMaps)
+				nt.notFM = t.inactiveFromMaps;
+
+			if (t.activeFromMaps)
+				nt.fromM = t.activeFromMaps;
+
+			var args:Dictionary = t.arguments;
+			nt.arguments = new Dictionary(true);
+			for (var p:String in args)
+				nt.arguments[p] = args[p];
+			
+			// param slid, lien symbolique
+			nt.symbLinkId = t.symbLinkId;
+			// param nombre execution du trigger
+			nt.maxFireCount = t.maxFireCount < int.MAX_VALUE ? t.maxFireCount : -1;
+			
+			nt.setArgument = function (k:String, v:*) : void {
+				if (k in this && k != "id") this[k] = v;
+				else
+					this.arguments[k] = v;
+			}
+			/*var slid:int = t.symbLinkId;
+			if (slid > -1)
+				nt.arguments["slid"] = slid;
+
+			// param nombre execution du trigger
+			var fc:int = t.maxFireCount;
+			if (fc < int.MAX_VALUE)
+				nt.arguments["fireCount"] = fc;*/
+				
+			return nt;
+		}
+		
+		/**
+		 * Lance la sauvegarde
+		 * 
+		 */
+		public function save() : void
+		{
+			enabled = false;
+			
+			if (currentAddForm)
+				currentAddForm.updateOnSave();
+			
+//			comAddForm.updateOnSave();
+//			comCondForm.updateOnSave();
+
+			var alTriggers:Array = triggersProxy.allTriggers;
+			var n:int = alTriggers.length;
+			alTriggers.sortOn("id", Array.DESCENDING);
+			var actions:Array = [];
+			var t:Object;
+			var nt:Object;
+			var args:Dictionary;
+			while (--n > -1)
+			{
+				t = alTriggers[n];
+				
+				if (editedDomain == 0 && t.id > 0) continue;
+				if (editedDomain == 1 && t.id < 0) continue;
+				
+				// on clean le trigger
+				cleanTriggerV2(t);
+				
+				nt = {	id:t.id, classId:t.triggerClassId, tileRefId:t.refId,
+						fireType:t.fireType };
+				
+				if (t.title) {
+					nt.title = t.title;
+				}
+					
+				if (t.inactiveFromMaps)
+					nt.notFM = t.inactiveFromMaps;
+
+				if (t.activeFromMaps)
+					nt.fromM = t.activeFromMaps;
+				
+				if (t.disable != 0)
+					nt.dis = t.disable;
+				
+				if (t.cond)
+					nt.cond = t.cond;
+				
+				if (t.level != 0)
+					nt.lev = t.level;
+					
+				args = t.arguments;
+				nt.arguments = {};
+				for (var p:String in args)
+					nt.arguments[p] = args[p];
+				
+				// param slid, lien symbolique
+				var slid:int = t.symbLinkId;
+				if (slid > -1)
+					nt.arguments["slid"] = slid;
+				// param nombre execution du trigger
+				var fc:int = t.maxFireCount;
+				if (fc < int.MAX_VALUE)
+					nt.arguments["fireCount"] = fc;
+
+				actions.push(nt);
+			}
+			
+			// Sauvegarde selon domaine d'édition
+			var doc:Object = editedDomain == 1 ? dataMapProxy.getData() : envProxy.getData();
+			doc.actions = actions;
+			doc.save(["actions"], onSaveSuccess, onSaveFault);
+		}
+		
+		/**
+		 * Change la source (refId) du des triggers pour correspondre
+		 * à la source newSource
+		 *	@param trigger Object	Array ou TriggerProperties
+		 *	@param newSource Object	Tile, autre ?
+		 */
+		public function swapTriggerSource (trigger:*, newSource:Object) : void
+		{
+			if (!("ID" in newSource)) return;
+			
+			var nso:String = newSource.ID;
+			var tr:Array = trigger is Array ? trigger : [trigger];
+			var n:int = tr.length;
+			while (--n > -1)
+				tr[n].refId = nso;
+		}
+		
+		public function openExplorer () : TriggerExplorer
+		{
+			PopUpManager.addPopUp(triggerExplorer, this);
+			return triggerExplorer;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * Reception cliques dans la toolbar
+		 *	@param event MouseEvent
+		 */
+		private function onClickToolbar(event:MouseEvent):void
+		{
+			var btn:Object = event.target;
+			switch (btn)
+			{
+				// bouton ajouter / supprimer des trigger sur grille
+				case toolbar.btnShowHideCellTrigger :
+				{
+					if (toolbar.btnShowHideCellTrigger.selected)
+					{
+						showGridTriggers();
+					}
+					else
+					{
+						hideGridTriggers();
+						if (toolbar.btnAddCellTrigger.selected)
+						{
+							stopCreateCellsTrigger();
+							toolbar.btnAddCellTrigger.selected = false;
+							toolbar.btnMoveCellTrigger.selected = false;
+						}
+						viewport.removeEventListener(MouseEvent.MOUSE_DOWN, onEditCells);
+						viewport.removeEventListener(MouseEvent.MOUSE_UP, onEditCells);
+						viewport.addEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+					}
+					break;
+				}
+				// bouton afficher masquer les triggers sur grille
+				case toolbar.btnAddCellTrigger :
+				{
+					if (toolbar.btnAddCellTrigger.selected)
+					{
+						createCellsTrigger();
+						if (!cellTriggerVisible)
+						{
+							showGridTriggers();
+							toolbar.btnShowHideCellTrigger.selected = true;
+						}
+						viewport.addEventListener(MouseEvent.MOUSE_DOWN, onEditCells, false, 100);
+						viewport.addEventListener(MouseEvent.MOUSE_UP, onEditCells, false, 100);
+						viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+						
+					} else {
+						stopCreateCellsTrigger();
+						viewport.removeEventListener(MouseEvent.MOUSE_DOWN, onEditCells);
+						viewport.removeEventListener(MouseEvent.MOUSE_UP, onEditCells);
+						viewport.addEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+					}
+					break;
+				}
+				// bouton déplacer des trigger sur grille
+				case toolbar.btnMoveCellTrigger :
+				{
+					if (btn.selected)
+					{
+						// affichage des cells si besoin
+						if (!cellTriggerVisible)
+						{
+							showGridTriggers();
+							toolbar.btnShowHideCellTrigger.selected = true;
+						}
+						// désenclenchement function ajouter cells
+						if (toolbar.btnAddCellTrigger.selected)
+						{
+							stopCreateCellsTrigger();
+							toolbar.btnAddCellTrigger.selected = false;
+						}
+						
+						viewport.addEventListener(MouseEvent.MOUSE_DOWN, onEditCells, false, 100);
+						viewport.addEventListener(MouseEvent.MOUSE_UP, onEditCells,false , 100);
+						viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+					}
+					else
+					{
+						viewport.removeEventListener(MouseEvent.MOUSE_DOWN, onEditCells);
+						viewport.removeEventListener(MouseEvent.MOUSE_UP, onEditCells);
+						viewport.addEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+					}
+					break;
+				}
+			}
+		}
+		 
+		/**
+		 *	Reception events sur la scene pendant le mode
+		 *  création / modification des céllules triggers (on the grid)
+		 * 
+		 *	@param event Event
+		 */
+		private function onEditCells (event:Event) : void
+		{
+			event.preventDefault();
+
+			var p:Point = isoscene.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
+			var up:Object = objectBuilderProxy.createUPoint(p.x, p.y, 0);
+			var spos:String = up.xu + "-" + up.yu + "-" + up.zu;
+			var t:Object = isosceneHelper.getTile(spos);
+
+			switch (true)
+			{
+				case toolbar.btnAddCellTrigger.selected :
+				{
+					switch (event.type)
+					{
+						case MouseEvent.MOUSE_UP :
+						{
+							// une cellule est deja là
+							if (t)
+							{
+								// cleanner les triggers !!!!
+								if (triggersProxy.hasTrigger(t)) removeTargetTriggers(t.ID);
+
+								isoscene.debugLayer.removeTile(t);
+							} else {
+								addCellTrigger(up.xu, up.yu, up.zu);
+							}	
+						}
+					}
+					break;
+				}
+				case toolbar.btnMoveCellTrigger.selected :
+				{
+					switch (event.type)
+					{
+						case MouseEvent.MOUSE_DOWN :
+						{
+							if (!t) return;
+							t.startDrag();
+							cellTemplate = t;
+							break;
+						}
+						case MouseEvent.MOUSE_UP :
+						{
+							if (!cellTemplate) return;
+							cellTemplate.stopDrag();
+							// mise à jour des des triggers de la céllule
+							var tl:Array = triggersProxy.getAllTriggers(cellTemplate.ID);
+							cellTemplate.umove(up);
+							cellTemplate._setID(spos);
+							swapTriggerSource(tl, cellTemplate);
+							cellTemplate = null;
+							break;
+						}
+					}
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *  Réception events souris sur la scène
+		 *  Sélection du tile ou cellule, mise à jour du formulaire
+		 * 
+		 *	@param event MouseEvent
+		 */
+		private function sceneMouseHandler (event:MouseEvent) : void
+		{
+			if (event.isDefaultPrevented()) return;
+
+			// on test si l'objet cliqué est le courant
+			currentTarget = event.target;
+			
+//			triggerExplorer.target = currentTarget;
+			
+			/*var tile:Object = event.target;
+			
+			if (tile == currentTarget) return;
+
+			if (currentTarget)
+			{
+				if (triggersProxy.hasTrigger(currentTarget))
+					currentTarget.filters = [new GlowFilter(0xFF9900)];
+				else
+					currentTarget.filters = [];
+			}
+
+			if ("ID" in tile)
+			{
+				
+				if (tile.inGroup)
+				{
+					tile = tile.inGroup.owner;
+					if (tile == currentTarget) return;
+				}
+
+				updateForm(tile);
+				tile.filters = [new GlowFilter()];
+				currentTarget = tile;		
+			}
+			else
+			{
+				clearForm();
+				currentTarget = null;
+			}*/
+		}
+		
+		/**
+		 * Reception selection d'une entré dans la liste
+		 * des triggers
+		 * 
+		 *	@param event Event
+		 */
+		private function cliTargetTriggersHandler (event:Event) : void
+		{
+			// on recup le trigger
+			var tprop:Object = event.target.selectedItem.data;
+			updateForm(tprop);
+		}
+		
+		/**
+		 * Reception events liste triggers chainés
+		 * 
+		 *	@param event Event
+		 */
+		private function cliChainedTriggersHandler(event:Event):void
+		{
+			switch (event.type)
+			{
+				case DragEvent.DRAG_DROP :
+				{
+					if (cliTargetTriggers.selectedItem)
+					{
+						var cTrigger:Object = cliTargetTriggers.selectedItem.data;
+						var devent:DragEvent = DragEvent(event);
+						var dragItem:Object = devent.dragSource.dataForFormat("items")[0];
+						if (devent.dragInitiator == cliChainedTriggers)
+						{
+							cTrigger.removeChainedTrigger(dragItem.data);
+						}
+						var ind:int = event.currentTarget.calculateDropIndex(event);
+						cTrigger.addChainedTrigger(dragItem.data, ind);
+					} else {
+						event.preventDefault();
+					}
+					break;
+				}
+			}
+		}
+
+		/**
+		 * Réception events liste des actions à modifiées par une action executée
+		 * 
+		 *	@param event Event
+		 */
+		private function cliOverrideTriggerHandler (event:Event):void
+		{
+			switch (event.type)
+			{
+				case DragEvent.DRAG_DROP :
+				{
+					if (cliTargetTriggers.selectedItem)
+					{
+						/*var cTrigger:Object = cliTargetTriggers.selectedItem.data;
+						var devent:DragEvent = DragEvent(event);
+						var dragItem:Object = devent.dragSource.dataForFormat("items")[0];
+						if (devent.dragInitiator == cliChainedTriggers)
+						{
+							cTrigger.removeChainedTrigger(dragItem.data);
+						}
+						var ind:int = event.currentTarget.calculateDropIndex(event);
+						cTrigger.addChainedTrigger(dragItem.data, ind);*/
+					} else {
+						event.preventDefault();
+					}
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *	Réception events dans les combos type d'action et
+		 *	type de déclenchement
+		 * 
+		 *	@param event Event
+		 */
+		private function ccbTriggerTypeHandler(event:Event):void
+		{
+			switch (event.target)
+			{
+				// selection dans le combo type d'action (on change de type de trigger)
+				case ccbTriggerType :
+				{
+					if (event.target.selectedItem)
+					{
+						if (cliTargetTriggers.selectedItem)
+						{
+							// on recup la class du trigger nouveau
+							var id:int = event.target.selectedItem.data;
+							var tprop:Object = cliTargetTriggers.selectedItem.data;
+							// on change son type (identifaint de classe)
+							tprop.triggerClassId = id;
+							// mise à jour de l'intitulé dans la liste des triggers
+							updateForm();
+							refreshTriggerList([tprop]);
+						} else {
+							event.target.selectedIndex = 0;
+						}
+					}
+					break;
+				}
+				// selection dans combo type de déclenchement
+				case ccbTriggerFireType :
+				{
+					// on recup le fireType nouveau
+					if (cliTargetTriggers.selectedItem)
+					{
+						var ft:int = event.target.selectedItem.data;
+						var tr:Object = cliTargetTriggers.selectedItem.data;
+						tr.fireType = ft;
+						updateForm();
+						refreshTriggerList([tr]);
+					}
+						
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *  
+		 *	@private
+		 */
+		private function editAllTriggerListSelectedItem () : void
+		{
+			if (dgAllTriggersList.selectedItem)
+			{
+				var tp:Object = dgAllTriggersList.selectedItem.data;
+				if (tp.refId != "null") {
+					updateForm(tp, true, true);
+					selectTargetOfCurrentTrigger();
+				}
+				else {
+					updateForm(tp, true);
+				}
+			}
+		}
+		
+		/**
+		 *	Réception des events pour les bars de boutons
+		 *	éditer / ajouter / supprimer action
+		 *  
+		 *	@param event ItemClickEvent
+		 */
+		private function buttonBarsHandler(event:ItemClickEvent):void
+		{
+			switch(event.item.id)
+			{
+				case "addTrigger" : // > ajout d'un trigger
+				{
+					if (currentTarget)
+					{
+						var tid:String = currentTarget.ID;
+						createTrigger(0, tid, tid.split("-").length == 3 ? 4 : 0);
+					}
+					break;
+				}
+				case "remTrigger" : // > suppression d'un trigger
+				{					
+					// trigger sélectionné dans la liste
+					var torem:Object = cliTargetTriggers.selectedItem.data;
+					if (torem)
+					{
+						// on previens le formulaire additionnel en cours du changement de type d'action
+						if (currentAddForm)	{		
+							currentAddForm.onDeleteTrigger(torem);
+							clearAddForm();
+						}
+						
+						// suppression dans la liste tous le triggers
+						n = dpAllTriggers.length;
+						while (--n > -1)
+						{
+							if (dpAllTriggers.getItemAt(n).data == torem)
+							{
+								dpAllTriggers.removeItemAt(n);
+								break;
+							}
+						}
+						
+						// on supprime le trigger du proxy
+						triggersProxy.removeTrigger(torem.id);
+						
+						// mise à jour de l'affichage dans la liste
+						var ind:int = cliTargetTriggers.selectedIndex;
+						cliTargetTriggers.dataProvider.removeItemAt(ind);
+						var len:int = cliTargetTriggers.dataProvider.length;
+						var tosel:Object;
+						if (ind < len) {
+							tosel = cliTargetTriggers.dataProvider.getItemAt(ind);
+						} else if (len > 0) {
+							tosel = cliTargetTriggers.dataProvider.getItemAt(ind - 1);
+						}
+							
+						if (tosel) {
+							updateForm(tosel.data, true, true);
+						} else {
+							ccbTriggerFireType.selectedIndex = 0;
+							ccbTriggerType.selectedIndex = 0;
+							cliChainedTriggers.dataProvider.removeAll();
+						}
+						
+					}
+					break;
+				}
+				case "backToParent" : // retour au parent du trigger en cours
+				{
+					var sel:Object = cliTargetTriggers.selectedItem.data;
+					var selId:int = sel.id; // identifiant du trigger selectionné
+					if (sel)
+					{
+						var allList:Array = triggersProxy.allTriggers;
+						var n:int = allList.length;
+						var tr:Object;
+						while (--n > -1)
+						{
+							tr = allList[n];
+							if (tr.hasChainedTrigger) {
+								if (tr.chainedTriggers.indexOf(sel) > -1)
+								{
+									if (currentTarget)
+									{
+										if (currentTarget.ID == tr.refId)
+											updateForm(tr, true, true);
+									} else {
+										updateForm(tr, true);
+									}
+									break;
+								}
+							}
+						}
+					}
+					break;
+				}
+				case "compEdTrigger" : // > edition d'un trigger enchainé
+				{
+					if (cliChainedTriggers.selectedItem)
+					{
+						var tp:Object = cliChainedTriggers.selectedItem.data;
+						updateForm(tp, true);
+					}
+					break;
+				}
+				case "compAddTrigger" : // clique sur bt ajout d'un trigger à l'enchainement
+				{
+					if (cliTargetTriggers.selectedItem)
+					{
+						var tprop:Object = createTrigger();
+						// on l'ajoute au chainage du trigger en cours
+						var curt:Object = cliTargetTriggers.selectedItem.data;
+						curt.addChainedTrigger(tprop);
+						
+						updateForm();
+					}
+					break;
+				}
+				case "compRemTrigger" : // clique sur bt suppression du trigger de l'enchainement
+				{
+					// trigger sélectionné dans la liste des chainages
+					if (cliChainedTriggers.selectedItem)
+					{
+						torem = cliChainedTriggers.selectedItem.data;
+						// parent du trigger chaîné
+						var prent:Object = cliTargetTriggers.selectedItem.data;
+						if (prent && torem)
+						{
+							// suppession chainage du parent
+							prent.removeChainedTrigger(torem);
+							updateForm(prent, true);
+						}
+					}
+					break;
+				}
+				case "allEdTrigger": // clique bt edit dans la liste de tous les triggers
+				{
+					editAllTriggerListSelectedItem();
+					/*if (dgAllTriggersList.selectedItem)
+					{
+						tp = dgAllTriggersList.selectedItem.data;
+						if (tp.refId != "null") {
+							updateForm(tp, true, true);
+							selectTargetOfCurrentTrigger();
+						} else {
+							updateForm(tp, true);
+						}
+					}*/
+					break;
+				}
+				case "allAddTrigger" : // clique sur bt ajout d'un trigger dans la liste tous les triggers
+				{
+					createTrigger();
+					break;
+				}
+				case "allRemTrigger" : // clique sur bt suppression du trigger dans la liste tous les triggers
+				{
+					var selIt:Object = dgAllTriggersList.selectedItem;
+					if (selIt)
+					{
+						// trigger à supprimer
+						var ttorem:Object = selIt.data;
+						
+						// mise à jour de l'affichage liste de tous le triggers
+						dpAllTriggers.removeItemAt(dpAllTriggers.getItemIndex(selIt));
+						
+						// liste triggers en édition (liste target + chaînés)
+						var dpttriggers:Array = cliTargetTriggers.dataProvider.toArray().concat(cliChainedTriggers.dataProvider.toArray());
+
+						// test si le trigger à supprimer est dans cette liste
+						var updForm:Boolean = false;
+						n = dpttriggers.length;
+						while (--n > -1)
+						{
+							if (dpttriggers[n].data == ttorem)
+							{
+								// trace("TRIGGER DANS LA LISTE");
+								updForm = true;
+								break;
+							}
+								
+						}
+						
+						// on supprime le trigger du proxy
+						triggersProxy.removeTrigger(ttorem.id);
+						
+						if (updForm)
+						{
+							if (currentTarget)
+							{
+								updateForm(currentTarget);
+							} else {
+								clearForm();
+							}
+						}
+					}
+					break;
+				}
+			}
+		}
+		
+		/**
+		 * Réception édition "manuelle" depuis dg toutes les actions
+		 * Edition du titre + sourceTarget
+		 *	@param event Event
+		 */
+		private function onEditTrigger (event:DataGridEvent) : void
+		{
+			if (dgAllTriggersList.selectedItem)
+			{
+				var item:Object = dgAllTriggersList.selectedItem;
+				var col:DataGridColumn = dgAllTriggersList.columns[event.columnIndex];
+				switch (col.dataField)
+				{
+					case "label" :
+						item.data.title = Object(dgAllTriggersList.itemEditorInstance).text;
+						break;
+					case "source" :
+						var oldDes:String = getSourceDescription(item.data);
+						var newSource:String = Object(dgAllTriggersList.itemEditorInstance).text;
+						if (newSource != oldDes)
+						{
+							item.data.refId = newSource;
+							// Force la ref à null si la source passée n'existe pas
+							if (newSource != "null" && getSourceDescription(item.data) == "aucune") {
+								item.data.refId = "null";
+							}
+							dgAllTriggersList.destroyItemEditor();
+							refreshTriggerList([item.data]);							
+						}
+						break;
+				}
+			}
+		}
+		
+		/**
+		 * Réception de la liste des scènes
+		 */
+		private function loadSceneListSuccess (result:Array) : void
+		{ mapList = result; }
+		
+		private function loadSceneListFault (fault:Object) : void
+		{
+			Alert.show("","Erreur lors de la récupération de la liste des scènes");
+		}
+		
+		/**
+		 * Réception sauvegarde
+		 */
+		private function onSaveSuccess (result:Object) : void
+		{ enabled = true; }
+				
+		private function onSaveFault (fault:Object) : void
+		{
+			enabled = true;
+			Alert.show("", "Erreur lors de la sauvegarde des actions");	
+		}
+		
+		/**
+		 *	Handler erreur à la sauvegarde 
+		 * 
+		 *	@param fault Object
+		 */
+		private function onFault (fault:Object) : void
+		{
+			trace("! erreur de sauvegarde des actions ", fault);
+			for (var p:String in fault)
+				trace(p, " : ", fault[p])
+		}		
+		
+		/**
+		 * Réception event instance ajouté à la scène
+		 * Mise en place des listeners sur la scène, affichage
+		 * des glows sur les tiles, etc...
+		 * 
+		 *	@private
+		 */
+		private function onAdd () : void
+		{
+			// on test si initialisé
+			if (!triggersProxy) return;
+
+			// on recup la liste des maps
+			// on lance la recup de la liste des maps
+			parentApplication.serverProxy.getServices("place").load({fields:["id", "title"]},
+																	loadSceneListSuccess, loadSceneListFault);
+			
+			var tlist:Array = viewport.tileList;
+			var n:int = tlist.length;
+			var t:Object;
+			while (--n > -1)
+			{
+				t = tlist[n];
+				t.mouseEnabled = true;
+				t.buttonMode = true;
+				if (triggersProxy.hasTrigger(t)) t.filters = [new GlowFilter(0xFF9900)];
+			}
+			
+			// on enleve les listeners par défaut de la scene iso
+			viewport.isosceneListenersEnabled = false;			
+			// on affiche les triggers sur grille
+			if (toolbar.btnShowHideCellTrigger.selected) showGridTriggers();
+			
+			// TEST CLEAN DES suppression des triggers associés avec un tile
+			// qui n'existe plus
+			var all:Array = triggersProxy.allTriggers;
+			var tr:Object;
+			n = all.length;
+			var desc:String;
+			for (var i:int = 0; i < n; i++)
+			{
+				tr = all[i];
+//				desc = getSourceDescription(tr);
+				if (getSourceDescription(tr).indexOf("tile") > -1)
+					if (!parentApplication.isosceneHelper.getTile(tr.refId)) removeTargetTriggers(tr.refId);
+			}
+			
+			currentState = "onAdd";
+			updateTriggersList();
+			
+			// on s'abonne aux clique sur la scène iso			
+			viewport.addEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+			toolbar.addEventListener(MouseEvent.CLICK, onClickToolbar);
+			
+			cliChainedTriggers.addEventListener(DragEvent.DRAG_DROP, cliChainedTriggersHandler, false, 0, true);
+//			cliOverrideTrigger.addEventListener(DragEvent.DRAG_DROP, cliOverrideTriggerHandler, false, 0, true);
+			
+			// on reviens sur le triggerEditor après une preview ?
+			if (currentTarget)
+			{
+				updateForm(currentTarget);
+				currentTarget.filters = [new GlowFilter()];
+			}
+		}
+		
+		/**
+		 * Réception event instance supprimée de la scène
+		 * Supression listeners remise à la normal des tiles, etc...
+		 * 
+		 *	@private
+		 */
+		private function onClose():void
+		{
+			if (!_created) return;
+			
+			clearForm();
+			clearAddForm();
+			
+			if (cellTemplate) stopCreateCellsTrigger();
+			hideGridTriggers();
+						
+			if (currentTarget) currentTarget.filters = [];
+			
+			var tlist:Array = viewport.tileList;
+			var n:int = tlist.length;
+			var t:Object;
+			while (--n > -1)
+			{
+				t = tlist[n];
+				if (triggersProxy.hasTrigger(t))
+				{
+					t.filters = [];
+					t.buttonMode = true;
+				} else {
+					t.mouseEnabled = false;
+				}
+			}
+			currentState = null;
+			viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler);
+			cliChainedTriggers.removeEventListener(DragEvent.DRAG_DROP, cliChainedTriggersHandler, false);
+		}
+		
+		/**
+		*	Réception event instanciation
+		*	
+		*	@see mx.events.FlexEvent
+		*/
+		private function onCreationComplete (event:FlexEvent) : void
+		{
+			// --- stockage des réfs utiles
+			objectBuilderProxy = parentApplication.objectBuilderProxy;
+			collisionGridProxy = parentApplication.collisionGridProxy;
+			isosceneHelper = parentApplication.isosceneHelper;
+			isoscene = parentApplication.isosceneHelper.component;
+			dataMapProxy = parentApplication.datamapProxy;
+			triggersProxy = parentApplication.triggersProxy;
+			toolbar = parentApplication.triggerEditorToolBar;
+			viewport = parentApplication.viewport;
+			
+			// id's / intitulés des classes de triggers
+			var tra:Array = [];
+			// id's / intitulés des classes de triggers
+			tra[0] = "action blanche";
+			tra[1] = "changer de scene";
+			tra[2] = "lien/mailto/fichier";
+			tra[3] = "quiz's";
+			tra[4] = "menu contextuel";
+			tra[5] = "signal ressources";
+			tra[6] = "deplacer un tile";
+			tra[7] = "étiquette";
+			tra[8] = "lecteur vidéo";
+			tra[9] = "popup html";
+			tra[10] = "::dispatch event::";
+			tra[101] = "mini jeu";
+			tra[102] = "lecteur Viméo";
+			tra[103] = "bonus joueur";
+			tra[104] = "::TScript::";
+			tra[105] = "action(s) temps limité";
+			tra[106] = "action(s) d'objets";
+			tra[107] = "modifier variable(s)";
+			tra[108] = "jouer un son";
+			tra[109] = "condition";
+			
+			TriggerProperties.triggerClasses = tra;
+			
+			// instanciation des formulaires additionnels
+			addForms = [];
+			addForms[1] = new TriggerForm1();		// formulaire  changement de map
+			addForms[2] = new TriggerForm2();		// formulaire popup
+			addForms[3] = new TriggerForm3();		// formulaire quiz
+			addForms[4] = new TriggerForm4();		// formulaire menu contexctuel
+			addForms[5] = new TriggerForm5();		// formulaire signaler ressources
+			addForms[6] = new TriggerForm6();		// formulaire bouger un tile
+			addForms[7] = new TriggerForm7();		// formulaire tooltip
+//			addForms[8] = new TriggerForm8();		// formulaire player video
+			addForms[9] = new TriggerForm9();		// formulaire popup html
+			addForms[10] = new TriggerForm10();		// formulaire dispatch event
+			addForms[101] = new TriggerForm101();	// formulaire mini jeu
+			addForms[102] = new TriggerForm102();	// formulaire player vimeo
+			addForms[103] = new TriggerForm103();	// formulaire bonus joueur
+			addForms[104] = new TriggerForm104();	// formulaire script
+			addForms[105] = new TriggerForm105();	// formulaire reach trigger
+			addForms[106] = new TriggerForm106();	// formulaire action tile
+			addForms[107] = new TriggerForm107();	// formulaire modifier variable
+			addForms[108] = new TriggerForm108();	// formulaire jouer un son
+			addForms[109] = new TriggerForm109();	// formulaire trigger condition
+			
+			// ?
+			cliTargetTriggers.dataProvider = [];
+			
+			tn_triggerOpts.selectedIndex = 1;
+//			tn_triggerOpts.selectedIndex = ;
+			
+			_created = true;
+//			var manager:MDIManager = new MDIManager(parentApplication as UIComponent);
+			// Explorateur
+			triggerExplorer = new TriggerExplorer();
+//			manager.add(triggerExplorer);
+			triggerExplorer.editor = this;
+			// openExplorer().browse("all");
+			
+			//
+			onAdd();
+			
+			// test Visualizer
+//			triggersVisualizer = new TriggersVisualizer();			
+//			parentApplication.ui.canvas.addChild(triggersVisualizer);
+		}
+		
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		/**
+		 * Flag indiquant si le trigger est dans le domaine / niveau
+		 * d'édition adéquate
+		 *	@param tr Object
+		 *	@return Boolean
+		 */
+		private function validForEdit (tr:Object) : Boolean
+		{
+			return	((editedDomain == 1 && tr.id > 0) || (editedDomain == 0 && tr.id < 0))
+					&& (editedLevel == 0 || editedLevel == tr.level);
+		}
+		
+		/**
+		 *	Ajoute un tile "cellule trigger" 
+		 * 
+		 *	@param x int
+		 *	@param y int
+		 *	@param z int
+		 *	@return Object
+		 */
+		private function addCellTrigger(x:int, y:int, z:int):Object
+		{
+
+			var tv:Object = objectBuilderProxy.createTileView(createCCell());
+			var t:Object = objectBuilderProxy.createAbstractTile(String(x + "-" + y + "-" + z), x, y, z, tv);
+			isoscene.debugLayer.addTile(t);
+			return t;
+		}
+		
+		/**
+		 *	Nettoie un trigger de ses arguments superflus d'après
+		 * le formauaire en cours
+		 *	@param tr Object	le trigger (TriggerProperties)
+		 */
+		private function cleanTrigger(tr:Object):void
+		{
+			if (currentAddForm)
+			{
+				var args:Dictionary = tr.arguments;
+				var safeArgrs:Array = currentAddForm.getSarfeArguments().concat(["slid", "fireCount", "onComplete", "passArgs", "passVals"]);
+				var n:int;
+				var prop:String;
+				var t:Boolean;
+				var toRem:Array = [];
+				for (var p:String  in args)
+				{
+					t = false;
+					n = safeArgrs.length;
+					while (--n > -1)
+					{
+						prop = safeArgrs[n];
+						if (prop == p)
+						{
+							t = true;
+							break
+						}
+					}
+					if (!t)
+						toRem.push(p)
+				}
+				// on nettoie
+				n = toRem.length;
+				while (--n > -1)
+					delete args[toRem[n]];
+				// test sur param slid
+				if (args["slid"] == -1)
+					delete args["slid"];
+			}
+		}
+		
+		/**
+		 * Nettoie un trigger des arguments superflus
+		 * 
+		 *	@param tr Object type TriggerProperties
+		 */
+		private function cleanTriggerV2(tr:Object):void
+		{
+			var form:Object = addForms[tr.triggerClassId];
+			if (!form) return;
+		
+			// check les paramètres saufs
+			var formSafeArgrs:Array = form.getSarfeArguments();
+			if (formSafeArgrs) {
+				// on doit garder tous les paramètres...				
+				if (formSafeArgrs[0] == "all") {
+					return;
+				}
+			}
+			
+			var safeArgrs:Array = formSafeArgrs.concat(["slid", "fireCount", "onComplete",
+														"passArgs", "passVals", "_ovT", "_mb",
+														"pload", "_sb", "_fs", "_wv", "completeBonus"]);
+			
+			var args:Dictionary = tr.arguments;
+			//
+			if (args["_ovT"])
+			{
+				if (args["_ovT"].length == 0) delete args["_ovT"];
+			}
+
+			var n:int
+			var prop:String;
+			var t:Boolean;
+			var toRem:Array = [];
+			for (var p:String  in args)
+			{
+				t = false;
+				n = safeArgrs.length;
+				while (--n > -1)
+				{
+					prop = safeArgrs[n];
+					if (prop == p)
+					{
+						t = true;
+						break;
+					}
+				}
+				if (!t) {
+					toRem.push(p);
+				}
+			}
+			// on nettoie
+			n = toRem.length;
+
+			while (--n > -1) {
+				delete args[toRem[n]];
+			}				
+		}
+		
+		/**
+		 *	Sélectione la source (dans la scéne) du trigger en cours d'édition
+		 *	@private
+		 */
+		private function selectTargetOfCurrentTrigger():void
+		{
+			if (cliTargetTriggers.selectedItem)
+			{
+				if (currentTarget)
+				{
+					if (triggersProxy.hasTrigger(currentTarget))
+						currentTarget.filters = [new GlowFilter(0xFF9900)];
+					else
+						currentTarget.filters = [];
+				}
+				var tr:Object = cliTargetTriggers.selectedItem.data;
+				var targId:String = tr.refId;
+				if (targId)
+				{
+					var targ:Object = parentApplication.isosceneHelper.getTile(targId);
+					if (targ)
+					{							
+						targ.filters = [new GlowFilter()];
+						currentTarget = targ;
+					}
+				}
+			}
+				
+		}
+		
+		/**
+		 * 	Mets à jour le formulaire ...action !
+		 * 
+		 *	@param triggerId int
+		 *	@return Boolean
+		 */
+		private function updateForm(source:Object = null, autoSelect:Boolean = false, displayBrothers:Boolean = false):void
+		{
+			var trigger:Object;
+			
+			if (!source)
+			{
+				// si pas de source, on fait la mise à jour en fonction de l'entrée
+				// selectionnée dans la liste (si selection il y à)
+				var selIt:Object = cliTargetTriggers.selectedItem
+				if (selIt)
+				{
+					updateForm(selIt.data, true, true);
+					return;
+				}
+				currentTrigger = null;
+				return;
+			}
+			
+			// > on est sur un tile
+			if ("ID" in source)
+			{
+				var tid:String = source.ID;
+				if (triggersProxy.hasTrigger(source))
+				{
+					trigger = triggersProxy.getAllTriggers(tid)[0];
+					displayBrothers = true;
+					autoSelect = true;
+				}
+				else
+				{
+					// remise à "0" des combos et listes
+					cliTargetTriggers.dataProvider.removeAll();
+					cliChainedTriggers.dataProvider.removeAll();
+					ccbTriggerFireType.selectedIndex = 0;
+					ccbTriggerType.selectedIndex = 0;
+					if (currentAddForm) currentAddForm.safeSave();
+					clearAddForm();
+					currentTrigger = null;
+					return;
+				}
+			}
+			else // > on est sur un trigger
+			{
+				trigger = source;
+				if (!validForEdit(trigger)) return;
+			}
+			
+			// on test si le trigger existe
+			if (!trigger)
+			{
+				currentTrigger = null;
+				return;
+			}
+			
+			// on test si la source est un trigger selectionné dans la liste
+			if (cliTargetTriggers.selectedItem)
+			{
+				if (cliTargetTriggers.selectedItem.data == trigger)
+				{
+					// -- mise à jour text info
+					var refId:String = trigger.refId;
+					var refObj:Object = parentApplication.isosceneHelper.getTile(refId);
+					if (refObj)
+					{
+						if (refObj.ID.split("-").length == 3)
+						{
+							// > texte pour trigger sur céllule
+							clbCurrentTarget.text = "céllule " + refId;
+							dtTriggerFireTypes = dtTriggerFireTypesForCells;
+						}
+						else 
+						{
+							// > texte pour trigger sur tile
+							clbCurrentTarget.text =  refObj.name + " (id:" + refId + ")";
+							dtTriggerFireTypes = dtTriggerFireTypesForTiles;
+						}
+					}
+					else
+					{
+						// > texte pour trigger chaîné
+						clbCurrentTarget.text = clbCurrentTarget.text = "action(s) chainée(s)";
+						dtTriggerFireTypes = dtTriggerFireTypesForChain;
+					}
+
+					clbCurrentTrigger.text = "action id: " + trigger.id;
+					
+					// -- mise à jour du combo type de déclenchement
+					var it:Object;
+					var fireType:int = trigger.fireType;
+					var n:int = dtTriggerFireTypes.length;
+					while (--n > -1)
+					{
+						it = dtTriggerFireTypes[n];
+						if (it.data == fireType)
+						{
+							ccbTriggerFireType.selectedIndex = n;
+							break;
+						}
+					}
+
+					// -- mise à jour du combo action (class de trigger)
+					n = dtTriggerTypes.length;
+					var trClassId:int = trigger.triggerClassId;
+					while (--n > -1)
+					{
+						if (dtTriggerTypes[n].data == trClassId)
+						{
+							ccbTriggerType.selectedIndex = n;
+							break;
+						}
+					}
+			
+					// -- mise à jour intitulé
+					var item:Object = cliTargetTriggers.selectedItem;
+//					var tit:String = triggersClass[n];
+					var tit:String = triggersClass[dtTriggerTypes[n].data];
+					if (trigger.isChained) tit = "< " + tit;
+					item.title = tit;
+					cliTargetTriggers.dataProvider.itemUpdated(item, "title", null, tit);
+
+					// -- mise à jour liste enchainement
+					cliChainedTriggers.dataProvider.removeAll();
+					var cpList:Array = [];
+					if (trigger.hasChainedTrigger)
+					{
+						var tpcList:Array = trigger.chainedTriggers;
+						n = tpcList.length;
+						var tc:Object;
+						for (var i:int = 0; i < n; i++)
+						{
+							tc = tpcList[i];
+							if (!validForEdit(tc)) continue;
+							tit = triggersClass[tc.triggerClassId] + " (" + tc.id + ")";
+							if (tc.hasChainedTrigger) tit+= " >";
+							cliChainedTriggers.dataProvider.addItem({ title:tit, data:tc });
+						}
+					}
+					
+					// -- mise à jour du formulaire additionnel
+					updateAddForm(trigger);
+					
+					currentTrigger = trigger;
+					// on s'arrête là
+					return;
+				}
+			}
+
+			// remise à "0" des combos et listes
+			cliTargetTriggers.dataProvider.removeAll();
+			cliChainedTriggers.dataProvider.removeAll();
+			ccbTriggerFireType.selectedIndex = 0;
+			ccbTriggerType.selectedIndex = 0;
+			
+			// suppression du formulaire additionnel
+			/*if (currentAddForm)
+			{
+				triggerForm.removeChild(DisplayObject(currentAddForm));
+				currentAddForm = null;
+			}*/
+
+			// index pour l'autoselection
+			var sind:int = 0;
+			
+			// il faut afficher tous triggers qui sont associés à la même
+			// source que celui-ci
+			if (displayBrothers)
+			{
+				// on retrouve les triggers qui sont associès a la même source (celui-ci inclu)
+				var brotherList:Array;
+				// on mets à jour la List des triggers
+				var tp:Object;
+				brotherList = triggersProxy.getAllTriggers(trigger.refId);
+				n = brotherList.length;
+				for (i = 0; i < n; i++)
+				{
+					tp = brotherList[i];
+					if (!validForEdit(tp)) continue;
+					cliTargetTriggers.dataProvider.addItem({ title:triggersClass[tp.triggerClassId], data:tp })
+					if (tp == trigger)
+						sind = i;
+				}
+			}
+			else
+			{
+				// intitulé de la classe de trigger
+				tit = triggersClass[trigger.triggerClassId];
+				// test si le trigger est châiné ) un autre
+				if (trigger.isChained)
+					tit = "< " + tit;
+				// ajout de l'entrée dans la liste
+				cliTargetTriggers.dataProvider.addItem({ title:tit, data:trigger });
+			}
+
+			currentTrigger = trigger;
+			
+			if (autoSelect)
+			{
+				cliTargetTriggers.selectedIndex = sind;
+				updateForm(trigger);
+			}
+		}
+		
+		/**
+		 * Mise à jour du formulaire additionnel
+		 * 
+		 *	@param tprop Object TriggerProperties
+		 */
+		private function updateAddForm (tprop:Object) : void
+		{
+			var cid:int = tprop.triggerClassId;
+			if (cid < 1) {
+				clearAddForm();
+				return;
+			}
+			
+			// > Formulaire propprétés spécifiques
+			var nform:Object = addForms[cid];
+			if (nform != currentAddForm)
+			{
+				if (currentAddForm) currentAddForm.safeSave();
+
+				clearAddForm();
+				if (nform)
+				{
+					currentAddForm = nform;
+					currentAddForm.trigger = tprop;
+					triggerForm.addChild(DisplayObject(currentAddForm));
+				}
+			} else {
+				// le type d'action est le même que celui du nouveau trigger en édition
+				// donc le formulaire est déjà le bon
+				if (currentAddForm.trigger != tprop)
+				{
+					currentAddForm.safeSave();
+					currentAddForm.trigger = tprop;
+				}
+			}
+		}
+		
+		/**
+		 * Mise à 0 du formulaire
+		 * 
+		 *	@private
+		 */
+		private function clearForm () : void
+		{			
+			// on enleve le formulaire additionnel en cours
+			if (currentAddForm)
+			{
+				// on previens le formulaire additionnel en cours du changement de type d'action
+				currentAddForm.safeSave();
+				triggerForm.removeChild(DisplayObject(currentAddForm));
+				currentAddForm = null;
+			}
+			// remise à "0" des combos et listes
+			clbCurrentTarget.text = "";
+			clbCurrentTrigger.text = "";
+			cliTargetTriggers.dataProvider.removeAll();
+			cliChainedTriggers.dataProvider.removeAll();
+			ccbTriggerFireType.selectedIndex = 0;
+			ccbTriggerType.selectedIndex = 0;
+			dtTriggerFireTypes = null;
+			/*lbFromM.enabled = false;
+			lbNotFM.enabled = false;*/
+			currentTrigger = null;
+		}
+		
+		/**
+		 * Mise à 0 du formulaire additionnel
+		 * 
+		 *	@private
+		 */
+		private function clearAddForm () : void
+		{
+			// on enleve le formulaire additionnel en cours
+			if (currentAddForm)
+			{
+				triggerForm.removeChild(DisplayObject(currentAddForm));
+				currentAddForm = null;
+			}
+			
+			
+			// upadte formulaire options communes
+			/*dpOverrideTriggers.removeAll();*/
+		}
+		
+		private function onTabChange () : void
+		{
+			switch (tn_triggerOpts.selectedIndex)
+			{
+				case 0 :
+					if (currentAddForm) {
+						currentAddForm.trigger = currentTrigger;
+					}
+					break;
+				
+				// options génériques
+				case 1 :
+					comAddForm.trigger = currentTrigger;
+					break;
+				// conditions
+				case 2 :
+					comCondForm.trigger = currentTrigger;
+					break;
+			}
+		}
+		
+		
+//public var dgAllTriggersList:Object = {};		
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<!-- popup liste de tous les triggers de la scène en cours -->
+		<!-- <mx:State name="onRemoved">
+			
+		</mx:State> -->
+		<mx:State name="onAdd">
+			<mx:AddChild relativeTo="{parentApplication.optionBox}">
+				<mx:HBox id="testm" width="100%">
+					<mx:DataGrid id="dgAllTriggersList" width="100%" editable="true" 
+									dataProvider="{dpAllTriggers}" dragEnabled="true" itemEditEnd="onEditTrigger(event);"
+									doubleClickEnabled="true" itemDoubleClick="editAllTriggerListSelectedItem();">
+				        <mx:columns>
+							<mx:DataGridColumn width="40" dataField="id" headerText="id" editable="false" />
+							<mx:DataGridColumn width="80" dataField="firetype" headerText="déclencheur" editable="false" />
+				            <mx:DataGridColumn dataField="source" width="140" headerText="source" editable="true" />
+				            <mx:DataGridColumn dataField="label" headerText="titre" editable="true" />
+							<mx:DataGridColumn dataField="title" width="120" headerText="action" editable="false" />
+							<mx:DataGridColumn dataField="chained" width="70" headerText="chainage" editable="false" />
+							<mx:DataGridColumn dataField="chainedTo" width="70" headerText="chainé à" editable="false" />
+				        </mx:columns>
+				    </mx:DataGrid>
+				<!-- </mx:AddChild> -->
+				<!-- <mx:AddChild relativeTo="{parentApplication.libBox}"> -->
+				    <mx:ButtonBar id="buttonBarAllTriggersList" itemClick="buttonBarsHandler(event);"
+								buttonHeight="20" buttonWidth="20" horizontalAlign="center"
+								direction="vertical" horizontalGap="0" verticalAlign="middle" verticalGap="0"
+								focusEnabled="false" dataProvider="{dpBtnEARAllTList}" />
+				</mx:HBox>
+			</mx:AddChild>
+			<mx:SetProperty target="{dgAllTriggersList}" name="height" value="{parentApplication.optionBox.height}" />
+		</mx:State>
+	</mx:states>
+	<mx:HBox width="100%">
+		<mx:Label width="180" text="selectionez une cible" id="clbCurrentTarget" truncateToFit="true" />
+		<mx:ComboBox id="cbEditedDomain" selectedIndex="{editedDomain}" change="{editedDomain=cbEditedDomain.selectedIndex}">
+			<mx:dataProvider>
+				<mx:Object label="global" data="0" />
+				<mx:Object label="scène" data="1" />
+			</mx:dataProvider>
+		</mx:ComboBox>
+		<mx:Label text="niv." />
+		<mx:NumericStepper id="nsEditedLevel" width="60" maximum="200" value="{editedLevel}" change="{editedLevel=nsEditedLevel.value}" />
+	</mx:HBox>
+	<mx:HBox width="100%">
+		<mx:VBox width="50%">
+			<!-- boutons ajouter / supprimer / parent trigger -->
+			<mx:HBox>
+				<mx:ButtonBar id="buttonBarARB"
+					direction="horizontal" buttonHeight="20" buttonWidth="20"
+					horizontalAlign="center" verticalAlign="middle"				
+					horizontalGap="0" verticalGap="0" focusEnabled="false"
+					dataProvider="{dpBtnARB}" itemClick="buttonBarsHandler(event);"/>
+				<mx:Label text="" id="clbCurrentTrigger" />
+			</mx:HBox>
+			<!-- liste des triggers en édition -->
+			<mx:List id="cliTargetTriggers" width="100%" height="130" dataTipField="data" dataProvider="{dtTargetTriggers}"
+				labelField="title" change="cliTargetTriggersHandler(event);" />
+		</mx:VBox>
+		<mx:VBox width="50%">
+			<mx:Label text="type d'action / déclencheur" />
+			<flmp:DisabledComboBox id="ccbTriggerType"
+						width="100%" rowCount="100"
+						dataProvider="{dtTriggerTypes}"
+						close="ccbTriggerTypeHandler(event);" />
+			<flmp:DisabledComboBox id="ccbTriggerFireType" dataProvider="{dtTriggerFireTypes}"
+								width="100%" rowCount="100"
+					            close="ccbTriggerTypeHandler(event);" />
+					
+			<mx:HBox>
+				<mx:Label text="enchaînées :" id="tx_complete" />
+				<!-- bar de boutons editer / ajouter / supprimer triggers chaînés -->
+			    <mx:ButtonBar id="buttonBarEAR" itemClick="buttonBarsHandler(event)"
+							buttonHeight="20" buttonWidth="20" horizontalAlign="center"
+							direction="horizontal" horizontalGap="0" verticalAlign="middle" verticalGap="0"
+							focusEnabled="false" dataProvider="{dpBtnEAR}" />				
+			</mx:HBox>
+				<!-- liste des triggers chaînés -->
+				<mx:List id="cliChainedTriggers" width="100%" height="50" dataProvider="{dtChainedTriggers}"
+							dataTipField="data" labelField="title" dragEnabled="true" dropEnabled="true" dragMoveEnabled="true" />				
+
+		</mx:VBox>
+	</mx:HBox>
+	
+	<mx:TabNavigator id="tn_triggerOpts" width="100%" height="100%" paddingLeft="10" paddingTop="10" paddingRight="10" paddingBottom="10"  backgroundColor="#F7F7F7"
+		change="onTabChange()" enabled="{currentTrigger!=null}" verticalScrollPolicy="off">
+		<!-- 
+			Onglet conteneur formaulaire additionnel
+		-->
+		<mx:VBox id="triggerForm" label="options spécifiques"
+				width="100%" height="100%" />
+		<!-- 
+			Onglet Options communes
+		-->
+		<mx:Box width="100%" label="options génériques" verticalScrollPolicy="off">
+			<flmp:TriggerForm0 id="comAddForm" proxy="{this}" verticalScrollPolicy="off" />
+		</mx:Box>
+		<!-- 
+			Onglet Conditions
+		-->
+		<mx:Box width="100%" label="conditions">
+			<flmp:TriggerFormCond id="comCondForm" proxy="{this}" />
+		</mx:Box>
+
+	</mx:TabNavigator>
+</mx:Box>

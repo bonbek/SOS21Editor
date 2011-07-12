@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"
+	xmlns:flmp="flexmapeditor.view.components.*"
+	xmlns:webgriffe="com.webgriffe.components.*"
+	creationComplete="onCreationComplete()">
+
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.collections.ArrayCollection;
+		import flexmapeditor.view.components.DisabledListItemRenderer;
+		import mx.core.ClassFactory;
+		
+		
+		/**
+		 *	Selecteur trigger
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2011-01-27
+		 */
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	@private
+		 *  Selection
+		 */
+		private function onSelect () : void
+		{
+			trace(cbTrigger.dropdown);
+		}
+
+		/**
+		 *	@private
+		 *  Première init
+		 */
+		private function onCreationComplete () : void
+		{
+			// première init passage de la liste de base, tous
+			// les triggers de la scène
+			/*cbTrigger.itemRenderer = new ClassFactory(DisabledListItemRenderer);*/
+			cbTrigger.dataProvider = dpAllTriggersOrganized;
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		/**
+		 *  Méthode formatage des intitulés
+		 *	@param item Object
+		 */
+		private function labelFunction (item:Object) : String
+		{
+			// TODO
+			// on est sur un trigger
+			if ("id" in item) {
+				return String(item);
+			}
+			else if ("label" in item) {
+				return item.label;
+			}
+
+			return String(item);
+		}
+		
+		/**
+		 * @private
+		 * Retourne la liste de tous les triggers, map plus persistants
+		 * organisés
+		 */
+		private function get dpAllTriggersOrganized () : Object
+		{
+			/* Test TreeCombo
+			var mlist:Array = dpCurrentMapTriggers;
+			var sortedList:Array = [];
+			var level:int;
+			for each (var t:Object in mlist)
+			{
+				level = t.level;
+				if (!sortedList[level]) sortedList[level] = [];
+				sortedList[level].push(t);
+			}
+			
+			var list:Array = [];
+			var tree:Object = {label:"Scene", children:list};
+			for (var i:int = 0; i < sortedList.length; i++)
+			{
+				if (sortedList[i] is Array)
+				{
+					list.push({label:"level " + i, children:sortedList[i]});
+				}
+			}
+
+			return tree;*/
+
+			var mlist:Array = dpCurrentMapTriggers;
+			var sortedList:Array = [];
+			var level:int;
+			for each (var t:Object in mlist)
+			{
+				level = t.level;
+				if (!sortedList[level]) sortedList[level] = [{label:"-- Niveau " + level, enabled:false}];
+				sortedList[level].push(t);
+			}
+
+			var list:Array = [];
+			for (var i:int = 0; i < sortedList.length; i++)
+			{
+				trace(sortedList[i]);
+				if (sortedList[i] is Array) list = list.concat(sortedList[i]);
+			}
+			
+			return list;
+			
+		}
+		
+		/**
+		 * @private
+		 * Retourne la liste de tous les triggers, map en cours plus persistants
+		 * pour le dataProvider cbTrigger
+		 */
+		private function get dpAllTriggers () : Array
+		{
+			var list:Array = parentApplication.triggerEditor.allTriggers;
+			if (list)
+			{
+				list = list.slice(0);
+				list.sortOn("id");
+			}
+
+			return list;
+		}
+		
+		/**
+		 * @private
+		 * Retourne la liste des triggers de la map en cours
+		 * pour le dataProvider cbTrigger
+		 */
+		private function get dpCurrentMapTriggers () : Array
+		{
+			var list:Array = parentApplication.triggerEditor.currentMapTriggers;
+			if (list)
+			{
+				list = list.slice(0);
+				list.sortOn("id");
+			}
+
+			return list;
+		}
+		
+		/**
+		 * @private
+		 * Retourne la liste des triggers persistants
+		 * pour le dataProvider cbTrigger
+		 */
+		private function get dpPersistantTriggers () : Array
+		{
+			var list:Array = parentApplication.triggerEditor.persistantTriggers;
+			if (list)
+			{
+				list = list.slice(0);
+				list.sortOn("id");
+			}
+
+			return list;
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	<!-- <webgriffe:TreeComboBox 
+			id="cbTrigger"
+			width="100%" treeHeight="250"
+			labelFunction="labelFunction" /> -->
+	
+	<flmp:DisabledComboBox id="cbTrigger" width="100%" rowCount="20"
+		labelFunction="labelFunction" close="onSelect()" />
+
+	<!-- <mx:ComboBox id="cbTrigger" width="100%" rowCount="20"
+		labelFunction="labelFunction" close="onSelect()" /> -->
+	
+	
+</mx:Box>

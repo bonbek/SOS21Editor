@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"
+		xmlns:fx="flexmapeditor.view.components.*">
+
+	<mx:Metadata>
+	    [Event(name="change", type="flash.events.Event")]
+  	</mx:Metadata>
+
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.Event;
+		import mx.events.ItemClickEvent;
+		import mx.collections.ArrayCollection;
+		import flexmapeditor.view.components.renderer.ConditionItemRenderer;
+		
+		/**
+		 *	Editeur de conditions
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2010-12-17
+		 */
+		
+		// barre de bouton
+		[Embed("icons/textfield_add.png")]
+		public var addIcon:Class;
+		[Embed("icons/textfield_delete.png")]
+		public var deleteIcon:Class;
+
+		[Bindable]
+		public var dpButtonBar:Array = [	{ icon:addIcon, toolTip:"ajouter une condition", id:"add" },
+											{ icon:deleteIcon, toolTip:"supprimer la condition selectionée", id:"remove" } ];
+		
+		// liste des opérateurs
+		[Bindable]
+		private var dpOperators:Array = [
+					{label:"+ grand ou =", data:">=", art:"à"},
+					{label:"+ petit ou =", data:"<=", art:"à"},
+					{label:"+ grand", data:">", art:"que"},
+					{label:"+ petit", data:"<", art:"que"},
+					{label:"=", data:"=", art:"à"},
+					{label:"contient", data:"()", art:""},
+					{label:"ne contient pas", data:"(!)", art:""}];
+
+		
+		[Bindable]
+		public var rowCount:int = 3;
+		
+		// liste des conditions
+		[Bindable]
+		public var conditionList:ArrayCollection = new ArrayCollection();
+		
+		private var _cond:Object;
+		public function get condition () : Object
+		{ return _cond; }
+		
+		public function set condition (val:Object) : void
+		{
+			conditionList.removeAll();
+
+			if (!val) return;
+
+			var list:Array = [];
+			var chain:String = "";
+			var char:String;
+			var n:int = val.length;
+			// split depuis & et |
+			for (var i:int = 0; i < n; i++)
+			{
+				char = val.charAt(i);
+				if (char == "&" || char == "|")
+				{
+					list.push(chain);
+					chain = "";
+					list.push(char);
+					continue;
+				}
+				
+				chain += char;
+			}
+			
+			if (chain.length > 0) list.push(chain);
+			
+			// split depuis opérateurs
+			n = list.length;
+			var part:Array;
+			for (i = 0; i < n; i++)
+			{
+				chain = list[i];
+				for each (var op:Object in dpOperators)
+				{
+					if (chain.indexOf(op.data) > -1)
+					{
+						part = chain.split(op.data);
+						part.splice(1, 0, op.data);
+						list[i] = part;
+						break;
+					}
+				}
+			}
+			
+
+			var ob:Array;
+			for (i = 0; i < n; i+=2)
+			{
+				ob = list[i];
+				conditionList.addItem({key1:ob[0], op:ob[1], key2:ob[2], pref:list[i-1] ? list[i-1] : null});
+			}
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	@private
+		 * Clique selection dans la liste des conditions
+		 * mise à jour système de saisie
+		 */
+		private function onItemClickLsCond () : void
+		{
+			var item:Object = lsCond.selectedItem;
+			if (!item.pref)
+			{
+				cbPrefs.enabled = false;
+				cbPrefs.label = "";
+			}
+			else
+			{
+				cbPrefs.enabled = true;
+				cbPrefs.label = item.pref;			
+			}
+
+			env1.selector = item.key1;
+			cbOperator.selectedItem = getOperator(item.op);
+			var lb:String = env2.selectorToLabel(item.key2);
+			if (lb)
+			{
+				env2.editMode = "assist";
+				env2.selector = item.key2;
+			}
+			else
+			{
+				env2.editMode = "hand";
+				env2.value = item.key2;
+			}
+			
+		}
+		
+		/**
+		 *	@private
+		 * Changement dans un des item, on reécrit la condition
+		 */
+		private function onChange (event:Event) : void
+		{
+			// item de la liste
+			var item:Object = lsCond.selectedItem;
+			switch (event.target)
+			{
+				case cbPrefs :
+				{
+					item.pref = cbPrefs.label = item.pref == "&" ? "|" : "&";
+					break;
+				}
+				case env1 :
+				{
+					item.key1 = env1.selector;
+					break;
+				}
+				case cbOperator :
+				{
+					item.op = cbOperator.selectedItem.data;
+					break;
+				}
+				case env2 :
+				{
+					item.key2 = env2.editMode == "hand" ? env2.value : env2.selector;
+					break;
+				}
+			}
+			
+			conditionList.itemUpdated(item);
+			
+			updateCondition();
+		}
+		
+		/**
+		 * Réception edition des entrées liste des conditions
+		 *	@param event ItemClickEvent
+		 */
+		private function onEditEntrys (event:ItemClickEvent) : void
+		{
+			switch(event.item.id)
+			{
+				case "add" :
+					var entry:Object = {key1:"0", op:"=", key2:"0", pref:conditionList.length > 0 ? "&" : null};
+					if (lsCond.selectedItem) conditionList.addItemAt(entry, lsCond.selectedIndex + 1);
+					else
+						conditionList.addItem(entry);
+					lsCond.selectedItem = entry;
+					lsCond.scrollToIndex(lsCond.selectedIndex);
+					// rafraichissement saisie
+					onItemClickLsCond();
+					break;
+				case "remove" :
+					if (lsCond.selectedItem)
+					{
+						var ind:int = lsCond.selectedIndex;
+						conditionList.removeItemAt(ind);
+						// si on est sur la première cond, la deuxième n'aura plus de pref
+						if (ind == 0 && conditionList.length > 0)
+						{
+							var o:Object = conditionList.getItemAt(0);
+							o.pref = null;
+							conditionList.itemUpdated(o);
+						}
+					}
+					break;
+			}
+
+			updateCondition();
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		private function updateCondition (): void
+		{
+			var cond:String = "";
+			for each (var o:Object in conditionList)
+			{
+				if (o.key1 && o.key2)
+				{
+					if (o.pref) cond += o.pref;
+					cond += o.key1;
+					cond += o.op;
+					cond += o.key2;
+				}
+			}
+			
+			if (cond != _cond)
+			{
+				_cond = cond.length > 0 ? cond : null;
+				dispatchEvent(new Event("change"));
+			}
+		}
+		
+		/**
+		 * Méthode de retour pour les intitulés de la liste conditions
+		 *	@param item Object
+		 *	@return String
+		 */
+		private function conditionLabelFunction (item:Object) : String
+		{
+			var label:String = "";
+			if (item.pref)
+			{
+				label = item.pref == "&" ? "<b>et</b> " : "<b>ou</b> ";
+			}
+			
+			label += "<font color=\"#8A47A6\">" + env1.selectorToLabel(item.key1) + "</font>";
+			var op:Object = getOperator(item.op);
+			label += " <font color=\"#31A053\">" + op.label + "</font> " + op.art;
+			
+			var lbKey2:String = env1.selectorToLabel(item.key2);
+			label += " <font color=\"#8A47A6\">";
+			label += lbKey2 ? lbKey2 : item.key2;
+			label += "</font>"
+			
+			// pour le tooltip
+			item.label = label;
+			
+			return label;
+		}
+		
+		private function getOperator (data:String) : Object
+		{
+			var op:Object;
+			for each (var o:Object in dpOperators)
+			{
+				if (o.data == data)
+				{
+					op = o;
+					break;
+				}
+			}
+			
+			return op;
+		}
+		
+	    ]]>
+	</mx:Script>
+	
+	
+	<!-- <mx:states>
+		<mx:State name="valueSelector">
+			<mx:RemoveChild target="{tiValue}" />
+			<mx:AddChild relativeTo="{valueBox}">
+				<fx:EnvSelector id="seValue" width="100%" />
+			</mx:AddChild>
+		</mx:State>
+	</mx:states> -->
+	
+	<mx:HBox>
+		<mx:Label text="Conditions" />
+		<mx:ButtonBar id="buttonBar"
+			direction="horizontal" buttonHeight="20" buttonWidth="20"
+			horizontalAlign="center" verticalAlign="middle"				
+			horizontalGap="6" verticalGap="0" focusEnabled="false"
+			dataProvider="{dpButtonBar}" itemClick="onEditEntrys(event)" />
+		</mx:HBox>
+	<!-- 
+	Liste des conditions -->
+	<mx:List id="lsCond" width="100%" rowCount="{rowCount}" labelFunction="conditionLabelFunction"
+		showDataTips="true" dataProvider="{conditionList}"
+		itemRenderer="flexmapeditor.view.components.renderer.ConditionItemRenderer"
+		itemClick="onItemClickLsCond()" />
+	
+	<!-- 
+	Edition item -->
+	<mx:Box enabled="{lsCond.selectedItem!=null}" width="100%">
+		<!--
+		Selecteur -->
+		<mx:HBox width="100%">
+			<mx:Button id="cbPrefs" width="30" height="20" click="onChange(event)" />
+			<fx:EnvSelector id="env1" width="100%" editMode="assist" modeSwitcher="false"
+				height="20" change="onChange(event)" />
+		</mx:HBox>
+	
+		<!-- 
+		Opérateur -->
+		<mx:HBox width="100%">
+			<mx:Spacer width="30" />
+			<mx:ComboBox id="cbOperator" width="100%" dataProvider="{dpOperators}"
+				height="20"
+				rowCount="{dpOperators.length}" close="onChange(event)"/>
+		</mx:HBox>
+		<!--
+		valeur -->
+		<mx:HBox width="100%">
+			<mx:Label text="{cbOperator.selectedItem.art}" width="30" textAlign="center" paddingTop="2" />
+			<fx:EnvSelector id="env2" width="100%" editMode="hand" modeSwitcher="true"
+				height="20" change="onChange(event)" />
+		</mx:HBox>
+	</mx:Box>
+	
+</mx:Box>

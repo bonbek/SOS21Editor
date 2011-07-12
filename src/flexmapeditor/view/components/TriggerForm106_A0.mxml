@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+	paddingTop="20" paddingLeft="20" paddingBottom="20" paddingRight="20"
+	title="Editer les options afficher/cacher objet">
+
+	<!-- Copyright 2011 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		/**
+		 *	Options du formulaire 106
+		 * 	> Action 0 et 1 afficher / cacher un objet
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author Christopher Corbin
+		 *	@since  2011-01-05
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		protected var target:Object;
+		protected var options:Object;
+
+		// état originel du tile
+		protected var initTargetStates:Boolean;
+		// fastPreview
+		protected static var previews:Dictionary = new Dictionary(true);
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+
+		// Internal
+		public var proxy:TriggerForm106;
+		public var visState:Boolean;
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Passage du tile cible et des options d'actions
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function setData (target:Object, options:Object) : void
+		{
+			this.target = target;
+			this.options = options;
+			
+			// stockage état initial
+			initTargetStates = target.alpha;
+			if (!visState) target.alpha = .41;
+			else
+				target.alpha = 1;
+//			target.visible = visState;
+		}
+		
+		/**
+		 * Aperçu "rapide" des effets de l'action
+		 *	@param target Object AbstractTile
+		 *	@param options Object
+		 */
+		public function fastPreview (target:Object, options:Object) : void
+		{
+			// stockage preview
+			if (!previews[target])
+				previews[target] = target.alpha;
+			
+			if (!visState) target.alpha = .41;
+			else
+				target.alpha = 1;
+//			target.visible = visState;
+		}
+		
+		/**
+		 *	Remise en l'état de toutes les previews
+		 */
+		public function disposeAllPreviews () : void
+		{
+			for (var t:Object in previews)
+				disposePreview(t, null);
+		}
+		
+		/**
+		 * 	Remise en l'état d'une preview
+		 *	@param target Object
+		 *	@param options Object
+		 */
+		public function disposePreview (target:Object, options:Object) : void
+		{
+			var state:Boolean = previews[target];
+			if (!state) return;
+
+			target.alpha = state;
+
+			delete previews[target];
+		}
+		
+		/**
+		 * @private
+		 * Remise en l'état du tile cible
+		 */
+		public function dispose () : void
+		{			
+			if (!target) return;
+
+			target.alpha = initTargetStates;
+			target = options = null;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="Sans options pour l'instant" />
+	
+</mx:TitleWindow>

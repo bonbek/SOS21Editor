@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	removedFromStage="onClose();"
+	creationComplete="onCreationComplete();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.Event;
+		import flash.events.MouseEvent;
+		import flash.geom.Point;
+		import flash.filters.GlowFilter;
+		import flexmapeditor.view.components.renderer.TriggerBrowserListItem;
+		
+		/**
+		 *	Formulaire additionnel pour triggers type bouger un tile
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		//---------------------------------------
+		// PROTECTED VARIABLES
+		//---------------------------------------
+		
+		private var firstInit:Boolean = true;
+		private var displayedPath:Array;
+		private var lastSourceFilters:Array;
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+
+		// trigger en pris en charge par cette instance
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			} else {
+				firstInit = false;
+			}	
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		public function createDescriptor (trigger : Object) : Object
+		{
+			var des:Object = {}
+			des.title = "Déplacer objet";
+//			des.summary = null;
+//			des.description = null;
+			
+			return des;
+		}
+		
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{ }
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["tile", "target"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{
+			if (!trigger) onClose();
+		}
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave():void
+		{
+		}
+		
+		public function showPath(sid:String, tid:String):Boolean
+		{
+			hidePath(); 
+			
+			var tile:Object = parentApplication.isosceneHelper.getTile(sid);
+			if (tile)
+			{
+				lastSourceFilters = tile.filters;
+				tile.filters = [new GlowFilter(0x7FCEFF)];
+				_trigger.arguments["tile"] = sid;
+			}
+			
+			if (!sid || !tid)
+			{
+				return false;
+			}
+			
+
+			var cell:Array = tid.split("/");
+			var targ:Object;
+			if (cell.length == 3) {
+				targ = parentApplication.objectBuilderProxy.createUPoint(cell[0], cell[1], cell[2]);
+			} else {
+				targ = parentApplication.isosceneHelper.getTile(cell[0]);
+				targ = targ ? parentApplication.collisionGridProxy.findNearestNoCollisionPoint(targ.upos) : null;
+			}
+			
+			if (!tile || !targ) return false;
+			
+			var path:Array = parentApplication.collisionGridProxy.findPath(tile.upos, targ);
+			
+			if (path)
+			{
+				var up:Object;
+				var tv:Object;
+				var dc:Object;
+				var n:int = path.length;
+				while (--n > -1)
+				{
+					up = path[n];
+					tv = parentApplication.objectBuilderProxy.createTileView(parentApplication.triggerEditor.createCCell(0x7FCEFF));
+					dc = parentApplication.objectBuilderProxy.createAbstractTile(up.posToString(), up.xu, up.yu, up.zu, tv);
+					parentApplication.isosceneHelper.component.debugLayer.addTile(dc);
+				}
+
+				displayedPath = path;
+				_trigger.arguments["target"] = tid;
+				return true;
+			} else {
+				return false;
+			}
+		}
+		
+		public function hidePath():void
+		{
+			var tile:Object = parentApplication.isosceneHelper.getTile(_trigger.arguments["tile"]);
+			if (tile)
+			{
+				if (lastSourceFilters)
+				{
+					tile.filters = lastSourceFilters;
+					lastSourceFilters = null;
+				}
+			}
+
+			if (!displayedPath) return;
+			
+			var n:int = displayedPath.length;
+			var cd:Object;
+			while (--n > -1)
+			{
+				cd = parentApplication.isosceneHelper.getTile(displayedPath[n].posToString());
+				parentApplication.isosceneHelper.component.debugLayer.removeTile(cd);
+			}
+			displayedPath = null;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * 	Réception cliques sur la scène iso
+		 *	@param event MouseEvent
+		 */
+		private function sceneMouseHandler(event:MouseEvent):void
+		{
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			
+			var targ:Object = event.target;
+			if (btSelectTarget.selected)
+			{
+				if (rbTileTarget.selected) {
+					if ("ID" in targ)
+					{
+//						_trigger.arguments["target"] = targ.ID;
+						showPath(_trigger.arguments["tile"], targ.ID);
+					}
+				} else if (rbCellTarget.selected) {
+					var p:Point = parentApplication.isosceneHelper.component.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
+					var cell:String = String(p.x + "/" + p.y + "/0");
+//					_trigger.arguments["target"] = cell;
+					if ("tile" in _trigger.arguments)
+						showPath(_trigger.arguments["tile"], cell);
+				}
+			} else if (btSelectSource.selected) {
+				if ("ID" in targ)
+				{
+//					_trigger.arguments["tile"] = targ.ID;
+//					if ("target" in _trigger.arguments)
+						showPath(targ.ID, _trigger.arguments["target"]);
+				}
+			}
+		}
+		
+		private function btnSelectSTHandler(event:Event):void
+		{
+			var bt:Object = event.target;
+			if (bt.selected)
+			{
+				if (bt == btSelectTarget && btSelectSource.selected)
+				{
+					btSelectSource.selected = false;
+				} else if (bt == btSelectSource && btSelectTarget.selected) {
+					btSelectTarget.selected = false;
+				} else {
+					parentApplication.viewport.addEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler, false, 500, true);
+				}
+			} else {
+				parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler, false);
+			}
+		}
+		
+		private function onClose():void
+		{
+			hidePath();
+			btSelectSource.selected = false;
+			btSelectTarget.selected = false;
+			rbSourceBob.selected = false;
+			rbSource.selected = false;
+			parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, sceneMouseHandler, false);
+		}
+		
+		/**
+		 *	Event handler for Creation Complete event.
+		 */
+		private function onCreationComplete():void
+		{
+			var args:Object = _trigger.arguments;
+			
+			// source
+			if ("tile" in args)
+			{
+				var tsource:String = args["tile"];
+				if (tsource == "1000") args["tile"] = tsource = "bob";
+				if (tsource == "bob") {
+					rbSourceBob.selected = true;
+				} else {
+					rbSource.selected = true;
+				}
+			}
+			
+			// cible
+			if ("target" in args)
+			{
+				var targ:String = args["target"];
+				if (targ)
+				{
+					if (targ.split("/").length == 3) // cible est une cellule
+					{
+						rbCellTarget.selected = true;
+					} else {	// cible est un tile
+						rbTileTarget.selected = true;					
+					}
+				}
+			}
+			if (tsource && targ)
+				showPath(tsource, targ);
+		}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="tile à bouger: " />
+	<mx:HBox width="100%">
+		<mx:RadioButton id="rbSourceBob" groupName="tile" label="bob" click="{showPath('bob', _trigger.arguments['target']);btSelectSource.selected=false}" />
+		<mx:RadioButton id="rbSource" groupName="tile" label="autre" />
+		<mx:Button id="btSelectSource" label="selection du tile" width="100%" toggle="true" enabled="{rbSource.selected}" click="btnSelectSTHandler(event)" />
+	</mx:HBox>
+	<mx:Label text="cible: " />
+	<mx:HBox width="100%">
+		<mx:RadioButton id="rbTileTarget" groupName="target" label="tile" />
+		<mx:RadioButton id="rbCellTarget" groupName="target" label="cellule" />
+		<mx:Button id="btSelectTarget" label="selection de la cible" width="100%" toggle="true" click="btnSelectSTHandler(event)" />
+	</mx:HBox>	
+</mx:VBox>

@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%" creationComplete="onCreationComplete();"
+	remove="hideSpatialRadius();">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flexmapeditor.vo.TriggerProperties;
+		
+		/**
+		 *	Formulaire additionnel pour triggers type jouer un son
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		private var firstInit:Boolean = true;
+		private var _trigger:Object;
+		// Object affichage zone influence du son
+		private var spatialRadiusSprite:Object;
+
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		// trigger pris en charge par cette instance
+		[Bindable]
+		public function get trigger() : Object
+		{ return _trigger; }
+
+		public function set trigger (t:Object) : void
+		{
+			_trigger = t;
+
+			if (!firstInit) onCreationComplete()
+			else
+				firstInit = false;
+		}
+		
+		// Refs -->
+		public function get viewport () : Object
+		{ return parentApplication.viewport; }
+
+		public function get isosceneHelper () : Object
+		{ return parentApplication.isosceneHelper; }
+		
+		public function get datamapProxy () : Object
+		{ return parentApplication.datamapProxy; }
+		
+		public function get objectBuilderProxy () : Object
+		{ return parentApplication.objectBuilderProxy; }
+		// <--
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 *	@private
+		 */
+		public function safeSave () : void
+		{
+			updateOnSave();
+		}
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{
+			return ["sf","lp", "sp", "spr", "vol", "ts"];
+		}
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger (trigger:Object = null) : void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave () : void
+		{
+			var nfile:String = tiSndFile.text;
+			// on check préload fichier
+			var pload:Array = _trigger.arguments["pload"];
+			if (_trigger.arguments["sf"] && pload)
+			{
+				var ind:int = pload.indexOf(_trigger.arguments["sf"]);
+				if (ind > -1) pload[ind] = nfile;
+				else
+					pload.push(nfile);
+			}
+			else if (pload) {
+				pload.push(nfile);
+			}
+			else {
+				_trigger.arguments["pload"] = [nfile];
+			}
+			
+			_trigger.arguments["sf"] = nfile;
+			_trigger.arguments["lp"] = nsLoop.value;
+			_trigger.arguments["vol"] = nsVolume.value / 100;
+			_trigger.arguments["spr"] = nsSpatialRadius.value;
+			
+			var atrig:Array = [];
+			for each (var t:Object in dgTrigStopper.dataProvider)
+				atrig.push(t.id);
+			if (atrig.length > 0) _trigger.arguments["ts"] = atrig;
+			else
+				delete _trigger.arguments["ts"];
+		}
+		
+		/**
+		 *	@private
+		 * 	Affichage aperçu zone d'influence du son
+		 */
+		public function showSpatialRadius () : void
+		{
+			var dmProxy:Object = parentApplication.datamapProxy;
+			var obProxy:Object = parentApplication.objectBuilderProxy;
+			var isosceneHelper:Object = parentApplication.isosceneHelper;
+
+			if (!spatialRadiusSprite)
+			{
+				var sprite:Sprite = new Sprite();
+				sprite.y = dmProxy.tileh / 2;
+				sprite.scaleY = .5;
+				var tv:Object = obProxy.createTileView(sprite)
+				spatialRadiusSprite = obProxy.createAbstractTile("__sprs__", 0, 0, 0, tv);
+				isosceneHelper.component.debugLayer.addTile(spatialRadiusSprite);
+			}
+
+			// Représentation de la zone d'influence en forme de cercle
+			sprite = spatialRadiusSprite.getChildAt(0);
+			sprite.graphics.clear();
+			sprite.graphics.beginFill(0x0000FF, .3);
+			sprite.graphics.drawCircle(0, 0, dmProxy.tileh * _trigger.arguments["spr"]);
+			sprite.graphics.endFill();
+
+			var sp:String = _trigger.arguments["sp"];
+			var upos:Object;
+			switch (true)
+			{
+				// on est sur une source définie dans le trigger type objet
+				case isosceneHelper.getTile(sp) != null:
+					upos = isosceneHelper.getTile(sp).upos.clone();
+					upos.zu = 0;
+					break;
+				// on est sur une source définie dans le trigger type cellule
+				case sp.indexOf("-") > -1 :
+					var a:Array = sp.split("-");
+					upos = obProxy.createUPoint(a[0], a[1]);
+					break;
+				// on est sur une source type objet
+				case isosceneHelper.getTile(_trigger.refId) != null:
+					upos = isosceneHelper.getTile(_trigger.refId).upos.clone();
+					upos.zu = 0;
+					break;
+				// on est sur un source type cellule
+				case String(_trigger.refId).indexOf("-") > -1 :
+					a = String(_trigger.refId).split("-");
+					upos = obProxy.createUPoint(a[0], a[1]);
+					break;
+			}
+			
+			if (upos) {
+				spatialRadiusSprite.umove(upos);
+			}
+			else {
+				hideSpatialRadius();
+				trace("Warning:", this, "Can't create spatial preview, no source find");
+			}
+		}
+		
+		/**
+		 *	@private
+		 * 	Suppression aperçu zone d'influence
+		 */
+		public function hideSpatialRadius () : void
+		{
+			if (spatialRadiusSprite)
+			{
+				isosceneHelper.component.debugLayer.removeTile(spatialRadiusSprite);
+				spatialRadiusSprite = null;
+			}
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *  Reception modifications liées à l'option
+		 *  Son Spatial
+		 *	@param event Event
+		 */
+		private function onModifySpatialOption (event:Event) : void
+		{
+			var target:Object = event.target;
+			switch (target)
+			{
+				// Evt checkbox Son spatial
+				case ckSpatial :
+					if (target.selected)
+					{
+						_trigger.arguments["sp"] = true;
+						_trigger.arguments["spr"] = nsSpatialRadius.value;
+						showSpatialRadius();
+					}
+					else {
+						delete _trigger.arguments["spr"];
+						delete _trigger.arguments["sp"];
+						nsSpatialRadius.value = 2;
+						ckSpatialTarget.selected = false;
+						btSpatialTarget.label = "";
+						hideSpatialRadius();
+					}
+					break;
+				// > Evt checkbox selection d'un objet / cellule
+				// source du son (autre que source du trigger)
+				case ckSpatialTarget :
+					if (!ckSpatialTarget.selected)
+					{
+						_trigger.arguments["sp"] = true;
+						btSpatialTarget.label = "";
+					}
+					showSpatialRadius();
+					break;
+				// > Evt bouton selection source du son
+				case btSpatialTarget :
+					if (btSpatialTarget.selected)
+					{
+						viewport.addEventListener(	MouseEvent.MOUSE_UP,
+													onModifySpatialOption, false, 500, true);
+					}
+					else {
+						viewport.removeEventListener(	MouseEvent.MOUSE_UP,
+														onModifySpatialOption, false);
+						btSpatialTarget.selected = false;
+					}					
+					break;
+				// > Evt click dans scène, selection de la source
+				// du son
+				default :
+					event.stopImmediatePropagation();
+					event.preventDefault();
+					
+					btSpatialTarget.selected = false;
+					viewport.removeEventListener(	MouseEvent.MOUSE_UP,
+													onModifySpatialOption, false);
+
+					if ("ID" in event.target)
+					{
+						// > on est sur un title
+						_trigger.arguments["sp"] = event.target.ID;
+						btSpatialTarget.label = event.target.name;
+					}
+					else
+					{
+						// > on est sur une position (cellule)
+						var p:Point =	isosceneHelper.component.debugLayer.findGridPoint(
+										new Point (stage.mouseX, stage.mouseY));
+						var cell:String = p.x + "-" + p.y + "-0";
+						btSpatialTarget.label = "cellule " + cell;
+						_trigger.arguments["sp"] = cell;
+					}
+
+					showSpatialRadius();
+					break;
+			}
+		}
+		
+		//---------------------------------------
+		// PRIVATE METHODS
+		//---------------------------------------
+		
+		/**
+		 *	@private
+		 */
+		private function onCreationComplete () : void
+		{
+			nsLoop.value = 0;
+			tiSndFile.text = "";
+			
+			var args:Object = _trigger.arguments;
+			// url du fichier
+			if ("sf" in args)
+				tiSndFile.text = args["sf"];
+			// paramètres nombre de boucles
+			if ("lp" in args)
+				nsLoop.value = args["lp"];
+			// parametre volume;
+			if ("vol" in args) nsVolume.value = args["vol"] * 100;
+			else
+				nsVolume.value = 100;
+			// parametre sound spatial
+			if ("sp" in args)
+			{
+				var source:String = args["sp"];
+				if (isosceneHelper.getTile(source) != null) {
+					ckSpatialTarget.selected = true;
+					btSpatialTarget.label = isosceneHelper.getTile(source).name;
+				}
+				else if (source.indexOf("-") > -1) {
+					// on est sur une cible définie, non la source du trigger
+					ckSpatialTarget.selected = true;
+					btSpatialTarget.label = "cellule " + source;
+				}
+				else {
+					ckSpatialTarget.selected = false;
+					btSpatialTarget.label = "";
+				}
+				
+				ckSpatial.selected = true;
+				// Rayon d'attenuation du son
+				if ("spr" in args) nsSpatialRadius.value = args["spr"];
+				else
+					args["spr"] = nsSpatialRadius.value = 2;
+				// preview
+				showSpatialRadius();
+			}
+			else {
+				ckSpatial.selected = false;
+			}
+			
+			// Paramètre liste des triggers stoppant la lecture
+			if (dgTrigStopper.dataProvider) dgTrigStopper.dataProvider.removeAll();
+			else
+				dgTrigStopper.dataProvider = [];
+			if ("ts" in args)
+			{
+				var t:Object; 	// objet trigger
+				var tt:String;	// intitulé trigger
+				var s:Object;	// intitulé source
+				var it:Object;
+				for each (var st:int in args["ts"])
+				{
+					t = parentApplication.triggerEditor.getTrigger(st);
+					if (!t) continue;
+
+					it = {};
+					tt = TriggerProperties.triggerClasses[t.triggerClassId];
+					it.id = t.id;
+					it.title = tt;
+					t = isosceneHelper.getTile(t.refId);
+					it.source = t ? t.name + " (id:" + t.ID + ")" : "aucune";
+					dgTrigStopper.dataProvider.addItem(it);
+				}
+			}
+		}
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:Label text="url fichier mp3" />
+	<mx:TextInput id="tiSndFile" width="100%" change="updateOnSave();" />
+	<mx:HBox width="100%">
+		<mx:Label text="Nombre de lectures" />
+		<mx:NumericStepper id="nsLoop" maximum="500" change="updateOnSave();" />
+		<mx:Label text="Volume" />
+		<mx:NumericStepper id="nsVolume" maximum="100" change="updateOnSave();" />
+	</mx:HBox>
+	<mx:HBox width="100%">
+		<mx:CheckBox id="ckSpatial" label="Spatial" change="onModifySpatialOption(event);"  />
+		<mx:Label text="taille zone d'atténuation" />
+		<mx:NumericStepper id="nsSpatialRadius" maximum="100" value="2" enabled="{ckSpatial.selected}"
+			change="updateOnSave();" click="showSpatialRadius();" />
+	</mx:HBox>
+	<mx:HBox width="100%" enabled="{ckSpatial.selected}">
+		<mx:CheckBox id="ckSpatialTarget" label="Definir source" change="onModifySpatialOption(event);"  />
+		<mx:Button id="btSpatialTarget" width="100%" enabled="{ckSpatialTarget.selected}" toggle="true"
+			change="onModifySpatialOption(event);" />
+	</mx:HBox>
+	<mx:HBox width="100%">
+		<mx:Label text="Liste des action(s) stoppant la lecture" />
+		<mx:Button id="btRemTrigStopper" label="x" width="30" toolTip="supprimer entrée"
+			click="dgTrigStopper.dataProvider.removeItemAt(dgTrigStopper.selectedIndex);updateOnSave()" />
+	</mx:HBox>
+	<mx:DataGrid id="dgTrigStopper" width="99%" headerHeight="0" rowCount="3"
+				editable="false" dropEnabled="true" sortableColumns="false"
+				change="updateOnSave();">
+        <mx:columns>
+            <mx:DataGridColumn width="20" dataField="id" headerText="id"/>
+			<mx:DataGridColumn width="100" dataField="title" headerText="action"/>
+			<mx:DataGridColumn width="100" dataField="source" headerText="source"/>			
+        </mx:columns>
+    </mx:DataGrid>
+</mx:VBox>

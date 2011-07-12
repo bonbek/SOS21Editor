@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="onCreationComplete()">
+	
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.events.Event;
+		import flash.net.Responder;
+		import flash.system.LoaderContext;
+		import flash.system.ApplicationDomain;
+		import flash.utils.Dictionary;
+
+		import mx.collections.ArrayCollection;
+		import mx.collections.Sort;
+		import mx.collections.SortField;
+		import mx.core.ClassFactory;
+
+		import br.com.stimuli.loading.BulkLoader;
+		import br.com.stimuli.loading.loadingtypes.LoadingItem;
+
+		import flexmapeditor.view.components.TileThumbItemRenderer;
+		
+		/**
+		 *	Librairie des tiles
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author toffer
+		 *	@since  2010-09-20
+		 */
+		
+		//---------------------------------------
+		// PUBLIC VARIABLES
+		//---------------------------------------
+		
+		[Bindable]
+		public var librarys:ArrayCollection = new ArrayCollection();
+
+		public static var loadOptions:Object = {preventCache:true, context:new LoaderContext(false, ApplicationDomain.currentDomain)};
+		
+		//---------------------------------------
+		// PRIVATE VARIABLES
+		//---------------------------------------
+		
+		// paire loader / data tile
+		private var _loadingItems:Dictionary;
+
+		public var loader:BulkLoader;
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 *	Efface le contenu de la librairie
+		 */
+		public function clear () : void
+		{ tileList.dataProvider.removeAll(); }
+		
+		public function refreshCurrentLibrary () : void
+		{
+			// recup identifiant catégorie selectionnée
+			loadLibrary(cbCategory.selectedLabel);
+		}
+		
+		public function loadLibrary (category:String) : void
+		{
+			// chargement des data tiles
+			parentApplication.serverProxy.getServices("object").load({match:{"category":category}},
+																	updateLibrary, onFault	);
+		}
+		
+		/**
+		 * Mise à jour de la librairie
+		 *	@param data Object liste des data tile
+		 */
+		public function updateLibrary (data:Object) : void
+		{
+			if (!enabled) return;
+
+			clear();
+			var res:Array = data is Array ? data as Array : [data];
+			if (res.length < 1) return;
+			
+			// freeze du composant
+			enabled = false;
+			
+			_loadingItems = new Dictionary(true);
+			var loadItem:LoadingItem;
+			
+			var path:String = parentApplication.configProxy.getContent("tiles_path");
+			// chargement des assets
+			for each (var tileData:Object in res)
+			{
+				// injection bon chemin
+				tileData.assets = path + tileData.assets;
+				loadItem = loader.add(tileData.assets, loadOptions);
+				loadItem.addEventListener(Event.COMPLETE, onLoadAsset);
+				// stockage reference loader / data tile
+				_loadingItems[loadItem] = tileData;
+			}
+
+			loader.addEventListener(Event.COMPLETE, onLoadAssetComplete);
+			loader.start();	
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 * Réception chargement asset
+		 *	@param event Event
+		 */
+		private function onLoadAsset (event:Event) : void
+		{
+			var loadItem:LoadingItem = event.target as LoadingItem;
+			loadItem.removeEventListener(Event.COMPLETE, onLoadAsset);
+
+			var tileData:Object = _loadingItems[loadItem];
+			tileList.dataProvider.addItem({dataTile:tileData});
+		}
+		
+		/**
+		 * Réception chargement complet
+		 *	@param event Event
+		 */
+		private function onLoadAssetComplete (event:Event) : void
+		{
+			loader.removeEventListener(Event.COMPLETE, onLoadAssetComplete);
+
+			if (!_loadingItems) return;
+
+			// libère mémoire
+			_loadingItems = new Dictionary();
+
+			enabled = true;
+		}
+		
+		/**
+		 * Réception selection d'un catégorie depuis combo
+		 * prévu à cet effet
+		 *	@param e Event
+		 */
+		private function onSelectCategory (event:Event) : void
+		{ refreshCurrentLibrary(); }
+		
+		/**
+		 *	Nouvelle librairie
+		 */
+		private function createNewLib () : void
+		{
+			if (tiNewLibName.text.length < 1) return;
+
+			enabled = false;
+			
+			var libName:String = tiNewLibName.text;
+			// On écrit dans les objectsModels de la scène globale (0)
+			var doc:Object = parentApplication.envProxy.getData();
+			if (!doc.objectsModels.categorys) {
+				doc.objectsModels.categorys = [];
+			} else {
+				// Check si nom existe
+				if (doc.objectsModels.categorys.indexOf(libName) > -1) {
+					enabled = true;
+					return;
+				}
+			}
+			
+			doc.objectsModels.categorys.push(tiNewLibName.text);
+			doc.save(["objectsModels"], onNewLibCreated, onFault);
+		}
+		
+		/**
+		 * Réception d'une nouvelle librairie
+		 *	@param result Object
+		 */
+		private function onNewLibCreated (result:Object) : void
+		{
+			tiNewLibName.text = "";
+			refreshLibraryList();
+
+			enabled = true;
+			currentState = null;
+		}
+		
+		private function refreshLibraryList () : void
+		{
+			librarys.removeAll();
+			var libSource:Array = parentApplication.envProxy.getData().objectsModels.categorys;
+			if (!libSource) return;
+			libSource.sort();
+			for each (var item:String in libSource)
+				librarys.addItem({title:item});
+		}
+		
+		/**
+		 * Réception erreur remoting
+		 *	@param fault Object
+		 */
+		private function onFault (fault:Object) : void
+		{ trace(this, "erreur dans la mise à jour de la librairie"); }
+		
+		/**
+		 *	@private
+		 * init
+		 */
+		private function onCreationComplete () : void
+		{ 
+			tileList.dataProvider = new ArrayCollection([]);
+			tileList.itemRenderer = new ClassFactory(TileThumbItemRenderer);
+			
+			// dp liste des librairies
+			var sort:Sort = new Sort();
+			sort.fields = [new SortField("title", true)];
+			librarys.sort = sort;
+
+			// lib assets
+			loader = BulkLoader.getLoader("tileAssets");
+			if (!loader) loader = new BulkLoader('tileAssets');
+			// recup liste des librairies
+			refreshLibraryList();
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+
+	    ]]>
+	</mx:Script>
+	
+	<mx:states>
+		<mx:State name="createLib">
+			<mx:RemoveChild target="{selector}" />
+			<mx:AddChild position="firstChild" relativeTo="{this}">
+				<mx:HBox width="100%">
+					<mx:TextInput id="tiNewLibName" width="100%" />
+					<mx:Button width="30" icon="@Embed('icons/accept.png')"
+						click="createNewLib()" toolTip="créer la librairie" />
+					<mx:Button width="30" icon="@Embed('icons/cancel.png')"
+						click="currentState=null" toolTip="annuler" />
+				</mx:HBox>				
+			</mx:AddChild>
+		</mx:State>
+	</mx:states>
+	
+	<!-- liste des librairies -->
+	<mx:HBox width="100%" id="selector">
+		<mx:ComboBox id="cbCategory" width="100%" labelField="title"  rowCount="20"
+			close="onSelectCategory(event);" dataProvider="{librarys}"/>
+		<mx:Button width="30" icon="@Embed('icons/add.png')" toolTip="nouvelle librairie"
+			click="currentState='createLib'" />
+	</mx:HBox>
+	<!-- liste objets de la librairie en cours -->
+	<mx:TileList id="tileList" width="100%" height="100%" />
+
+</mx:Box>

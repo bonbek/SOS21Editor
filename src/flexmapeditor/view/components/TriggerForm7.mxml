@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	width="100%" height="100%"
+	creationComplete="onCreationComplete(event);">
+
+	<!-- Copyright 2009 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import mx.events.FlexEvent;
+		import flash.net.Responder;
+		import mx.controls.Text;
+		import mx.containers.Panel;
+		
+		/**
+		 *	Formulaire additionnel pour les triggers tooltip
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 */
+		
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		private var firstInit:Boolean = true;
+		
+		// trigger en pris en charge par cette instance
+		private var _trigger:Object;
+		[Bindable]
+		public function set trigger(t:Object):void {
+			_trigger = t;
+			if (!firstInit)
+			{
+				onCreationComplete();
+			}
+		}
+		
+		public function get trigger():Object {
+			return _trigger;
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments():Array
+		{ return ["text", "bgColor", "textColor"]; }
+		
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 *	@private
+		 */
+		public function safeSave () : void
+		{ }
+		
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  Opération de nettoyage, suppression de l'entrée dans
+		 *  la DB
+		 *	@param	trigger	 qui va être supprimé (si pas ref interne est prise)
+		 *	@private
+		 */
+		public function onDeleteTrigger(trigger:Object = null):void
+		{ }
+		
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	@private
+		 */
+		public function updateOnSave () : void
+		{ }
+		
+		/**
+		 *	Sauvegarde le texte d'étiquette dans la DB
+		 */
+		public function saveTooltipText () : void
+		{
+			// suprime les sauts de lignes
+			var txt:String = texArea.text;
+			txt = txt.replace(/[\r]/g, "");
+			txt = txt.replace(/[\n]/g, "");
+			txt = txt.replace(/[\r\n]/g, "");
+			// Maj trigger
+			_trigger.arguments["text"] = txt;
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	Initialisation du composant
+		 *	@see mx.events.FlexEvent
+		 */
+		private function onCreationComplete(event:FlexEvent = null) : void
+		{ 
+			firstInit = false;
+			texArea.text = _trigger.arguments["text"]	? _trigger.arguments["text"]
+														: "Nouvelle étiquette";
+		}
+
+	    ]]>
+	</mx:Script>
+
+	<mx:Label width="100%" text="Texte de l'étiquette" />
+	<mx:TextArea id="texArea" width="100%" height="100"
+				editable="true" change="saveTooltipText()"/>
+</mx:VBox>

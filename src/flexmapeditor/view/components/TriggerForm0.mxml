@@ -1,0 +1,898 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"
+		xmlns:fmecomp="flexmapeditor.view.components.*"
+		xmlns:fx="flexmapeditor.view.components.renderer.*">
+
+	<!-- Copyright 2010 toffer. -->
+	
+	<mx:Script>
+	    <![CDATA[
+		
+		import flash.geom.Point;
+
+		import mx.collections.ArrayCollection;
+		import mx.events.DragEvent;
+		import mx.events.DataGridEvent;
+		import mx.controls.NumericStepper;
+		import mx.core.IFlexDisplayObject;
+		import mx.managers.PopUpManager;
+
+		import flexmapeditor.view.components.PopupList;
+		import flexmapeditor.view.components.OverrideTriggerWindow;
+		import flexmapeditor.vo.TriggerProperties;
+		import flexmapeditor.view.components.renderer.OVTEffectivEventRenderer;
+		
+		/**
+		 *	Formulaire options communes des triggers
+		 *
+		 *	@langversion ActionScript 3.0
+		 *	@playerversion Flash 9.0
+		 *
+		 *	@author toffer
+		 */
+
+		/*private var firstInit:Boolean = true;*/
+		private var _trigger:Object;
+		private var popup:IFlexDisplayObject;
+		private var mbDest:Array;
+		// activation / désactivation
+		private var ovT:Array;
+		// override
+		private var ovTO:Array;
+
+		//---------------------------------------
+		// GETTER / SETTERS
+		//---------------------------------------
+		
+		[Bindable]
+		public var dpOVTEffectivetEvent:ArrayCollection = new ArrayCollection([{label:"début", data:0}, 
+													{label:"fin", data:1}, 
+													{label:"annulé", data:2} ]);
+		
+		[Bindable]
+		public var proxy:Object;
+		
+		// liste des triggers modifiés par le trigger
+		[Bindable]
+		public var dpOverrideTriggers:ArrayCollection = new ArrayCollection([]);
+		// liste des actions activées par le trigger
+		[Bindable]
+		public var dpEnableTrigger:ArrayCollection = new ArrayCollection([]);
+		// liste des actions desactivées par le trigger
+		[Bindable]
+		public var dpDisableTrigger:ArrayCollection = new ArrayCollection([]);
+
+		[Bindable]
+		public var dpSymLink:ArrayCollection = new ArrayCollection([]);
+		
+		
+		[Bindable]
+		public function set trigger (t:Object) : void
+		{
+			ckbMoveBob.selected = false;
+			ckbWaitMoved.selected = false;
+			dpDisableTrigger.removeAll();
+			dpEnableTrigger.removeAll();
+			dpOverrideTriggers.removeAll();
+			hidePath();
+			mbDest = [];
+			ckbInactive.selected = false;		
+			ckbSymlink.selected = false;
+//			if (!cliSymlink.dataProvider) cliSymlink.dataProvider = new ArrayCollection();
+//			else
+			
+			if (!t)
+			{
+				lbFromM.enabled = false;
+				lbNotFM.enabled = false;
+				_trigger = null;
+				currentState = null;
+				ckbSymlink.selected = false;
+				enabled = false;
+				return;
+			}
+			
+			enabled = true;
+
+			_trigger = t;
+			
+			// mise à jour des labels actif / inactif depuis
+			lbFromM.enabled = t.activeFromMaps ? true : false;
+			lbNotFM.enabled = t.inactiveFromMaps ? true : false;
+			ckbInactive.selected = t.disable ? true : false;
+			
+			
+			// mise à jour si lien symbolique
+			if (t.symbLinkId > -1)
+			{
+				ckbSymlink.selected = true;
+				currentState = "symlink";
+				cliSymlink.dataProvider.removeAll();
+				ct = proxy.getTrigger(t.symbLinkId);
+				if (ct)
+				{
+					tit = TriggerProperties.triggerClasses[ct.triggerClassId] + " (id:" + ct.id + ")";
+					var so:Object = proxy.isosceneHelper.getTile(ct.refId);
+					var sou:String = so ? so.name + " (id:" + so.ID + ")" : "aucune";
+					cliSymlink.dataProvider.addItem({id:ct.id, title:tit, source:sou});
+				}
+				return;
+			}
+			else
+			{
+				// mise à jour déplacer arrêter bob selon fireType
+				if (t.fireType == 3 || t.fireType == 4)
+				{
+					currentState = "stopBob";
+					var sb:int = t.arguments["_sb"];
+					if (sb) ckbStopBob.selected = true;
+				}
+				else
+				{
+					currentState = null;
+					// affichage du déplacement vers le tile, ou autre..
+					var mb:String = t.arguments["_mb"];
+					if (mb) {
+						// affichage chemin
+						mbDest = mb.split("/");
+						showPath(mbDest[0], mbDest[1], mbDest[2]);
+						// selection checkbox déplacer bob
+						ckbMoveBob.selected = true;
+						// selection option attendre la fin du déplacement
+						ckbWaitMoved.selected = mbDest[3] == 1;
+					}
+					else
+					{
+						ckbMoveBob.selected = false;
+						ckbWaitMoved.selected = false;
+						hidePath();
+						mbDest = [];
+					}
+				}				
+			}
+						
+			// Option freeze scene
+			if (t.arguments["_fs"]) ckbFreezeScene.selected = true;
+			else
+				ckbFreezeScene.selected = false;
+			
+			// TODO mise à jour de la liste des actions modifiées
+			ovT = [];
+			ovTO = [];
+			var oovT:Array = t.arguments["_ovT"];
+			if (oovT)
+			{
+				var en:Array;
+				var ct:Object;
+				var ot:Object;
+				var tit:String;
+//				var so:Object;
+//				var sou:String;
+				for each (var m:Object in oovT)
+				{
+					en = m.split("|");
+					ct = proxy.getTrigger(en[2]);
+					tit = "["+ ct.id +"]" + TriggerProperties.triggerClasses[ct.triggerClassId];
+//					so = proxy.isosceneHelper.getTile(ct.refId);
+//					sou = so ? so.name + " (id:" + so.ID + ")" : "aucune";
+					if (ct)
+					{
+						// test sur condition activer / désativer trigger
+						if (en.indexOf("disable") > -1)
+						{
+//							ot = {title:tit, source:sou, exec:en[1], effectivEvt:en[0], data:ct};
+							ot = {title:tit, effectivEvt:en[0], exec:en[1], data:ct};
+							// desactiver
+							if (en[4] == 1) dpDisableTrigger.addItem(ot);
+							else
+								dpEnableTrigger.addItem(ot);
+							ovT.push(m);
+
+						}
+						else
+						{
+							ovTO.push(m);
+							ot = unserializeOvTrigger(ct, m);
+							if (ct)
+								dpOverrideTriggers.addItem({title:tit, effectivEvt:en[0], exec:ot.exec, data:ct, ovdata:ot});
+						}					
+					}
+				}
+			}
+		}
+
+		public function get trigger () : Object {
+			return _trigger;
+		}
+
+		/**
+		 *	Appelé au changement du trigger à éditer
+		 * 
+		 *	@private
+		 */
+		public function safeSave():void
+		{
+
+		}
+		
+		//---------------------------------------
+		// PUBLIC METHODS
+		//---------------------------------------
+		
+		/**
+		 * Retourne la liste des Arguments "vitaux" pour ce type
+		 * de trigger
+		 * @private
+		 */
+		public function getSarfeArguments () : Array
+		{
+			return ["all"];
+		}
+
+		/**
+		 *	Appelé à la suppression d'un trigger
+		 *  
+		 *	@param	trigger	 qui va être supprimé
+		 *	@private
+		 */
+		public function onDeleteTrigger (trigger:Object = null) : void
+		{ }
+
+		/**
+		 *	Appelé par TriggersEditor avant la sauvegarde
+		 *	Test et clean l'argument entryPoint
+		 *	@private
+		 */
+		public function updateOnSave () : void
+		{ }
+		
+		/**
+		 *	@param xu int
+		 *	@param yu int
+		 *	@param zu int
+		 */
+		public function showPath (xu:int, yu:int, zu:int) : void
+		{
+			hidePath();
+			var tv:Object = parentApplication.objectBuilderProxy.createTileView(proxy.createCCell(0x7FCEFF));
+			var dc:Object = parentApplication.objectBuilderProxy.createAbstractTile("__movebobmarker__", xu, yu, zu, tv);
+			parentApplication.isosceneHelper.component.debugLayer.addTile(dc);
+		}
+		
+		/**
+		 *	
+		 */
+		public function hidePath () : void
+		{
+			var dc:Object = parentApplication.isosceneHelper.getTile("__movebobmarker__");
+			if (dc)
+				parentApplication.isosceneHelper.component.debugLayer.removeTile(dc);
+		}
+		
+		//---------------------------------------
+		// EVENT HANDLERS
+		//---------------------------------------
+		
+		/**
+		 *	@param e Event
+		 */
+		private function selectBobMoveDest (e:Event) : void
+		{
+			if (e.target == btBobDest)
+			{
+				if (e.target.selected)
+				{
+					parentApplication.viewport.addEventListener(MouseEvent.MOUSE_UP, selectBobMoveDest, false, 500, true);
+				}
+				else
+				{
+					parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, selectBobMoveDest, false);
+					btBobDest.selected = false;
+				}
+			}
+			else if (e.target == ckbWaitMoved)
+			{
+				mbDest[3] = int(e.target.selected);
+				trigger.arguments["_mb"] = mbDest.join("/");
+			}
+			else if (e.target == ckbMoveBob)
+			{
+				if (!ckbMoveBob.selected) delete trigger.arguments["_mb"];
+			}
+			else
+			{
+				parentApplication.viewport.removeEventListener(MouseEvent.MOUSE_UP, selectBobMoveDest, false);
+				e.stopImmediatePropagation();
+				e.preventDefault();
+				var p:Point = parentApplication.isosceneHelper.component.debugLayer.findGridPoint(new Point (stage.mouseX, stage.mouseY));
+				mbDest[0] = p.x;
+				mbDest[1] = p.y;
+				showPath(mbDest[0], mbDest[1], 0);
+				btBobDest.selected = false;
+				trigger.arguments["_mb"] = mbDest.join("/");
+			}
+		}
+		
+		private function stopBobMove (e:Event) : void
+		{
+			if (e.target.selected) trigger.arguments["_sb"] = 1;
+			else
+				delete trigger.arguments["_sb"];
+		}
+		
+		/**
+		 *  Changement propriété Freeze scene
+		 *	@param e Event
+		 */
+		private function freezeSceneOption (e:Event) : void
+		{
+			if (e.target.selected) trigger.arguments["_fs"] = 1;
+			else
+				delete trigger.arguments["_fs"];
+		}
+		
+		/**
+		 *	Réception click boutons actif / inactif depuis scène(s)
+		 *	@param event Event
+		 */
+		private function btnEditFromNotFromMHandler (event:Event) : void
+		{
+			var bt:Object = event.target;
+			
+			if (!trigger)
+			{
+				bt.selected = false;
+				return;
+			}
+			
+			var pp:PopupList = PopUpManager.createPopUp(parentApplication.viewport, PopupList, true) as PopupList;
+			PopUpManager.centerPopUp(pp);
+			pp.dpItemList = proxy.mapList;
+			pp.itemList.allowMultipleSelection = true;
+			pp.validateButton.label = "valider";
+			pp.addEventListener(MouseEvent.CLICK, popupHandler, false, 0, true);
+			
+			popup = pp;
+			
+			// sélection dans la liste
+			var tprop:Object = trigger;
+			var sList:Array;
+			if (bt == btNotFM)
+			{
+				pp.title = "Selection de(s) scène(s) depuis lesquel(s) l'action est inactive";
+				sList = trigger.inactiveFromMaps;
+			} else {
+				pp.title = "Selection de(s) scène(s) depuis lesquel(s) l'action est active";
+				sList = trigger.activeFromMaps;
+			}
+			
+			if (sList)
+			{
+				var ars:Array = [];
+				var itList:Object;
+				var n:int = proxy.mapList.length;
+				while (--n > -1)
+				{
+					itList = pp.itemList.dataProvider.getItemAt(n);
+					if (sList.indexOf(itList.id) > -1) ars.push(itList);
+				}
+				if (ars.length > 0) pp.itemList.selectedItems = ars;
+			}
+		}
+		
+		/**
+		 * Réception drag drop dans la liste des écrasement des propriétés
+		 *	@param event Event
+		 */
+		private function cliOverrideTriggerHandler  (event:Event) : void
+		{
+			// recup TriggerPropperties
+			var devent:DragEvent = DragEvent(event);
+			var dragItem:Object = devent.dragSource.dataForFormat("items")[0];
+			var ind:int = event.currentTarget.calculateDropIndex(event);
+			event.preventDefault();
+			var ovt:Object = createOvTrigger(proxy.copyTrigger(dragItem.data));
+//			ovt.exec = -1;
+			var tit:String = "[" + dragItem.data.id + "] " + dragItem.title;
+			dpOverrideTriggers.addItem({title:tit, effectivEvt:1, exec:1,
+								data:dragItem.data,
+								ovdata:ovt});
+			ovTO.push("1|1|" + dragItem.data.id);
+		}
+		
+		/**
+		 * Réception drop d'une action dans la liste des actions à activer / désactiver
+		 *	@param e Event
+		 */
+		private function cliEDTeriggerDrop (e:Event) : void
+		{
+			// recup id du trigger
+			var devent:DragEvent = DragEvent(e);
+			var dragItem:Object = devent.dragSource.dataForFormat("items")[0];
+			var tid:int = dragItem.data.id;
+			e.preventDefault();
+			var tit:String = dragItem.title + " (id:" +  dragItem.data.id + ")";
+			e.target.dataProvider.addItem({title:tit, effectivEvt:1, exec:1, data:dragItem.data});
+			var dis:int = e.target == cliEnableTrigger ? 0 : 1;
+			ovT.push("1|1|" + tid + "|disable|" + dis);
+			_trigger.arguments["_ovT"] = ovT.concat(ovTO);
+		}
+		
+		private function cliSymlinkHandler (e:Event) : void
+		{
+			switch (e.target)
+			{
+				case btRemSymlink :
+				{
+					if (cliSymlink.dataProvider.length > 0) cliSymlink.dataProvider.removeAll();
+					trigger.symbLinkId = -1;
+					break;
+				}
+				case ckbSymlink :
+				{
+//					cliSymlink.dataProvider.removeAll();
+					if (ckbSymlink.selected) {
+						currentState = "symlink";
+					} else {
+						trigger.symbLinkId = -1;
+						currentState = null;
+					}
+					cliSymlink.dataProvider.removeAll();
+					break;
+				}
+				default :
+				{
+					var devent:DragEvent = DragEvent(e);
+					var dragItem:Object = devent.dragSource.dataForFormat("items")[0];
+					var tid:int = dragItem.data.id;
+					trigger.symbLinkId = tid;
+					break;
+				}
+			}
+		}
+		
+		/**
+		 *	@param e Event
+		 */
+		private function editAETrigger (e:Event) : void
+		{
+			var cli:Object;
+			var cv:int;
+			
+			if (e.target == btRemEnableTrigger || e.target == cliEnableTrigger)
+			{
+				cli = cliEnableTrigger;
+				cv = 0;
+			} else {
+				cli = cliDisableTrigger;
+				cv = 1;
+			}
+
+			var ind:int = cli.selectedIndex;
+			var dp:ArrayCollection = cli.dataProvider;
+			// id du trigger ciblé
+			var sel:int = dp.getItemAt(ind).data.id;
+			var args:Array;
+			var n:int = ovT.length;
+			
+			// modification "à l'execution n"
+			if (e is DataGridEvent)
+			{
+//				trace(cli.itemEditorInstance);
+				
+				// recup valeur
+				var nv:int = cli.itemEditorInstance.value;
+				//var nv:int = NumericStepper(cli.itemEditorInstance).value;
+				while (--n > -1)
+				{
+					args = ovT[n].split("|");
+
+					if (args.indexOf("disable") > -1)
+					{
+						// test sur l'id du trigger et le type activer / désactiver
+						if (args[2] == sel && args[4] == cv)
+						{
+							switch (true)
+							{
+								// update du type d'event effectif
+								case cli.itemEditorInstance is OVTEffectivEventRenderer :
+									args[0] = nv;
+									break;
+								// update du numéro d'exec actif
+								case cli.itemEditorInstance is NumericStepper :
+									args[1] = nv;
+									break;
+							}
+							// 
+							ovT[n] = args.join("|");
+							_trigger.arguments["_ovT"] = ovT.concat(ovTO);
+							break;
+						}
+					}
+				}
+				return;
+			}
+						
+			while (--n > -1)
+			{
+				args = ovT[n].split("|");
+				if (args.indexOf("disable"))
+				{
+					// test sur l'id du trigger et le type activer / désactiver
+					if (args[2] == sel && args[4] == cv)
+					{
+						dp.removeItemAt(ind);
+						ovT.splice(n, 1);
+						_trigger.arguments["_ovT"] = ovT.concat(ovTO);
+						break;
+					}
+				}
+			}
+		}
+		
+		/**
+		 *	Reception clique dans popup edition trigger actif / inactif depuis maps 
+		 *	@param event Event
+		 */
+		private function popupHandler (event:Event) : void
+		{
+			var bt:Object = event.target;
+			var pp:PopupList = PopupList(popup);
+			if (bt == pp.validateButton)
+			{
+				var sel:Array = pp.itemList.selectedItems;
+				var t:Object = trigger;
+				if (t)
+				{
+					var na:Array;
+					var n:int = sel.length;
+					if (n > 0)
+					{
+						na = [];
+						while (--n > -1)
+							na.push(sel[n].id);
+					}
+					
+					if (btNotFM.selected)
+						t.inactiveFromMaps = na;
+					else if (btFromM.selected)
+						t.activeFromMaps = na;
+				}
+				
+				var lb:Object = btFromM.selected ? lbFromM : lbNotFM
+				lb.enabled = na ? true : false;
+				btNotFM.selected = false;
+				btFromM.selected = false;
+
+				PopUpManager.removePopUp(popup);
+				popup = null;
+			} else if (bt == pp.cancelButton) {				
+				btNotFM.selected = false;
+				btFromM.selected = false;
+				popup = null;
+			}
+		}
+		
+		private function editOverrideTrigger (e:Event) : void
+		{
+			// suppression d'une entrée dans les override trigger
+			if (e.target == btRemOvTrigger)
+			{
+				if (cliOverrideTrigger.selectedItem)
+				{
+					var ind:int = cliOverrideTrigger.selectedIndex;
+					dpOverrideTriggers.removeItemAt(ind);
+					ovTO.splice(ind, 1);
+					_trigger.arguments["_ovT"] = ovT.concat(ovTO);
+				}
+				return;
+			}
+			
+			// on vient d'éditer un param relatif à la prise d'effet 
+			if (e is  DataGridEvent)
+			{
+				var args:Array = ovTO[cind].split("|");
+				switch (true)
+				{
+					// modification effectif à l'event
+					case cliOverrideTrigger.itemEditorInstance is OVTEffectivEventRenderer :
+						args[0] = Object(cliOverrideTrigger.itemEditorInstance).value;
+						break;
+					// modification effectif à l'execution
+					case cliOverrideTrigger.itemEditorInstance is NumericStepper :
+						args[1] = Object(cliOverrideTrigger.itemEditorInstance).value;
+						break;
+					default :
+						return;
+				}
+
+				var cind:int = cliOverrideTrigger.selectedIndex;
+				ovTO[cind] = args.join("|");
+				_trigger.arguments["_ovT"] = ovT.concat(ovTO);
+
+				return;
+			}
+			
+			// double clique dans la liste des écrasements
+			if (e.target == cliOverrideTrigger)
+			{				
+				var pp:OverrideTriggerWindow = PopUpManager.createPopUp(parentApplication.viewport, OverrideTriggerWindow) as OverrideTriggerWindow;
+				PopUpManager.centerPopUp(pp);
+				
+				var dt:Object = cliOverrideTrigger.selectedItem.data;
+				pp.triggerTypes = proxy.dtTriggerTypes;
+				var refId:String = trigger.refId;
+				if (refId.split("-").length == 3)
+					pp.triggerFireTypes = proxy.dtTriggerFireTypesForCells;
+				else if (int(refId) > 0)
+					pp.triggerFireTypes = proxy.dtTriggerFireTypesForTiles;
+								
+				var cp:Object = cliOverrideTrigger.selectedItem.ovdata;
+				pp.trigger = dt;
+				pp.ovtrigger = cp;
+				pp.btApplyChange.addEventListener(MouseEvent.CLICK, editOverrideTrigger);
+				popup = pp;
+			}
+			else
+			{
+				var ppp:OverrideTriggerWindow = OverrideTriggerWindow(popup);
+				ppp.oform[ppp.oform.currentState].updateOnSave();
+				var t1:Object = ppp.trigger;
+				var t2:Object = ppp.ovtrigger;
+//				trace("---- check changed ----");
+				var ser:Array = [];
+				// check si la classe à changée
+				if (t2.triggerClassId != t1.triggerClassId)
+				{
+					ser.push("triggerClassId");
+					ser.push(t2.triggerClassId);
+				}
+				if ((t2.maxFireCount != t1.maxFireCount) && t2.maxFireCount > -1)
+				{
+					ser.push("maxFireCount");
+					ser.push(t2.maxFireCount);
+				}					
+				// TODO check sur changement nombre executions
+
+				// on retrouve les arguments modifiés
+				var sargs:Array = ppp.oform[ppp.oform.currentState].getSarfeArguments();
+				var v1:*;
+				var v2:*;
+				for each (var ar:String in sargs)
+				{
+					// test si l'argument existe dans le trigger originel
+					/*if (ar in t1.arguments)
+					{ 
+						v1 = t1.arguments[ar];
+						v2 = t2.arguments[ar];
+						if (v1 == v2 || !v2 || v2 == undefined) {
+							continue;
+						}
+					}*/
+					v2 = t2.arguments[ar];
+					if (ar in t2.arguments)
+					{
+//						trace("OVERRIDE", ar, v2);
+						ser.push(ar);
+						ser.push(v2);
+					}
+				}
+				
+				//trace(ser.join("|"));
+				if (ser.length > 0)
+				{					
+					ser.unshift(t1.id);
+					ser.unshift(dpOverrideTriggers.getItemAt(cliOverrideTrigger.selectedIndex).exec);
+					ser.unshift(dpOverrideTriggers.getItemAt(cliOverrideTrigger.selectedIndex).effectivEvt);
+//					trace("OVERRIDE", ovTO[cliOverrideTrigger.selectedIndex]);
+					ovTO[cliOverrideTrigger.selectedIndex] = ser.join("|");
+//					trace(">>", ovTO[cliOverrideTrigger.selectedIndex]);
+//					trace("ovT", ovT);
+					_trigger.arguments["_ovT"] = ovT.concat(ovTO);
+//					trace("ovT", ovT);
+				}
+			}
+		}
+		
+		//---------------------------------------
+		// PRIVATE & PROTECTED METHODS
+		//---------------------------------------
+		
+		private function createOvTrigger (t:Object) : Object
+		{
+			var ot:Object = proxy.copyTrigger(t);
+			/*ot.setArgument = function (k:String, v:*) : void {
+							if (k in this && k != "id") this[k] = v;
+							else
+								this.arguments[k] = v;
+						}*/
+			
+			return ot;
+		}
+		
+		private function unserializeOvTrigger (t:Object, sdt:*) : Object
+		{
+			var ot:Object = createOvTrigger(t);
+			var o:Array = sdt.split("|");
+			ot.exec = o[1];
+
+			for (var j:int = 3; j < o.length; j+=2)
+				ot.setArgument(o[j], o[j+1]);
+
+			return ot;
+		}
+		
+		/**
+		 * Changement dans les propriétées génériques du trigger
+		 * en cours d'édition
+		 *	@param e Event
+		 */	
+		/*private function onChangeMaxFireCount (e:Event) : void
+		{
+			switch (e.target)
+			{
+				// > changement du nombre maximum d'execution, si la valeur
+				// est 0 ou plus petite, on passe le nombre d'exec max à infini
+				case ti_maxFireCount :
+				{
+					trigger.maxFireCount = ti_maxFireCount.text.length > 0 ? int(ti_maxFireCount.text) : -1;
+					break;
+				}
+			}
+		}*/
+
+	    ]]>
+	</mx:Script>
+		
+	<mx:states>
+		<!-- options lien symbolique -->
+		<mx:State name="symlink">
+			<mx:AddChild>			
+				<mx:HBox width="100%">
+				<mx:DataGrid id="cliSymlink" dataProvider="{dpSymLink}" width="100%" headerHeight="0" rowCount="1" editable="false"
+					dragEnabled="true" dropEnabled="{trigger != null}"  dragDrop="cliSymlinkHandler(event);">
+			        <mx:columns>
+			            <mx:DataGridColumn width="20" dataField="id" headerText="id"/>
+						<mx:DataGridColumn width="100" dataField="title" headerText="action"/>
+						<mx:DataGridColumn width="100" dataField="source" headerText="source"/>			
+			        </mx:columns>
+			    </mx:DataGrid>
+				<mx:Button id="btRemSymlink" label="supr" click="cliSymlinkHandler(event);" />
+				</mx:HBox>
+			</mx:AddChild>
+			<mx:RemoveChild target="{tbnEDM}" />
+			<mx:RemoveChild target="{hbMove}" />
+		</mx:State>
+		
+		<!-- options arréter bob -->
+		<mx:State name="stopBob">
+			<mx:AddChild relativeTo="{hbMove}">
+				<mx:CheckBox id="ckbStopBob" label="stopper bob" toolTip="stopper le déplacement de bob"
+							change="stopBobMove(event)" />
+			</mx:AddChild>
+			<mx:RemoveChild target="{ckbMoveBob}" />
+			<mx:RemoveChild target="{btBobDest}" />
+			<mx:RemoveChild target="{ckbWaitMoved}" />
+		</mx:State>
+		
+	</mx:states>
+	
+	<mx:HBox>
+		<!-- désactivé -->
+		<mx:CheckBox id="ckbInactive" label="désactivé" change="trigger.disable=ckbInactive.selected" />
+		<!-- actif depuis scène(s) -->
+		<mx:Label id="lbFromM" text="actif depuis" enabled="false" />
+		<mx:Button id="btFromM" toolTip="activer l'action seulement si le joueur provient de certaine(s) scène(s)"
+			icon="@Embed('icons/page_white_edit.png')" width="20"
+			toggle="true" enabled="{!btNotFM.selected}"
+			click="btnEditFromNotFromMHandler(event)" />
+		<!-- inactif depuis scène(s) -->
+		<mx:Label id="lbNotFM" text="inactif depuis" enabled="false" />
+		<mx:Button id="btNotFM" toolTip="désactiver l'action si le joueur provient de certaine(s) scène(s)"
+			icon="@Embed('icons/page_white_edit.png')" width="20"
+			toggle="true" enabled="{!btFromM.selected}"
+			click="btnEditFromNotFromMHandler(event)" />
+	</mx:HBox>
+	<mx:HBox width="100%" verticalAlign="middle" horizontalGap="14">
+		<!-- <mx:Spacer width="30" /> -->
+		
+		<!-- lien symbolique -->
+		<mx:CheckBox id="ckbSymlink" label="Lien" change="cliSymlinkHandler(event);" />
+		<!-- lien symbolique -->
+		<mx:CheckBox id="ckbFreezeScene" label="Gèle int. scene"
+			toolTip="Gèle les intercations souris dans la scène durant l'execution de cette action"
+			change="freezeSceneOption(event);" />
+		<!-- Nombre d'exections -->
+		<mx:Label text="Max exec" toolTip="Nombre de fois que l'action pourra être executée"/>
+		<mx:TextInput id="ti_maxFireCount" toolTip="nombre de fois que l'action pourra être executée (laisser vide pour indéfiniment)"
+						restrict="0-9" width="25"
+						text="{trigger.maxFireCount != int.MAX_VALUE ? trigger.maxFireCount : ''}"
+						change="trigger.maxFireCount = ti_maxFireCount.text.length > 0 ? int(ti_maxFireCount.text) : -1;" />
+	</mx:HBox>
+	
+	<!-- Deplacer bob -->
+	<mx:HBox id="hbMove">
+		<mx:CheckBox id="ckbMoveBob" label="déplacer bob" toolTip="activer le déplacement de bob"
+					change="selectBobMoveDest(event)" />
+		<mx:Button	id="btBobDest" toggle="true" icon="@Embed('icons/browser_galeon.png')"
+					enabled="{ckbMoveBob.selected}" toolTip="selecionner la destination du déplacement"
+					change="selectBobMoveDest(event)" />
+		<mx:CheckBox	id="ckbWaitMoved" label="attendre fin du dépl..." enabled="{ckbMoveBob.selected}"
+						toolTip="attendre la fin du déplacement de bob pour lancer l'action" change="selectBobMoveDest(event)"/>
+	</mx:HBox>
+	
+	<!-- Ecrasement propriétées de triggers -->
+	<mx:TabNavigator id="tbnEDM" width="100%" height="100%" borderStyle="none"
+		paddingTop="10" paddingLeft="0" paddingRight="0" paddingBottom="10" backgroundColor="#F7F7F7">
+		<mx:Box width="100%" label="acitve action(s)">
+			<mx:Button id="btRemEnableTrigger" label="supr" click="editAETrigger(event)"/>			
+			<mx:DataGrid id="cliEnableTrigger" width="100%" rowCount="3" editable="true" itemEditEnd="editAETrigger(event);"
+				dragEnabled="true" dropEnabled="{trigger != null}" dragMoveEnabled="{trigger != null}"
+				dataProvider="{dpEnableTrigger}" dragDrop="cliEDTeriggerDrop(event)">
+		        <mx:columns>
+		            <mx:DataGridColumn width="130" dataField="title" headerText="action" editable="false" />
+		            <!-- <mx:DataGridColumn dataField="source" headerText="source" editable="false" /> -->
+					<mx:DataGridColumn	width="60" headerText="effectif"
+							dataField="effectivEvt" editorDataField="value" rendererIsEditor="true"
+							itemRenderer="flexmapeditor.view.components.renderer.OVTEffectivEventRenderer" />
+					<mx:DataGridColumn width="50" dataField="exec" headerText="à exec." editorDataField="value">
+						<mx:itemEditor>
+							<mx:Component>
+								<mx:NumericStepper maximum="50" />
+							</mx:Component>
+						</mx:itemEditor>
+					</mx:DataGridColumn>
+		        </mx:columns>
+		    </mx:DataGrid>
+		</mx:Box>
+		<mx:Box width="100%" label="désactive action(s)">
+			<mx:Button id="btRemDisableTrigger" label="supr" click="editAETrigger(event)"/>
+			<mx:DataGrid id="cliDisableTrigger" width="100%" rowCount="3" editable="true"
+				dragEnabled="true" dropEnabled="{trigger != null}" dragMoveEnabled="{trigger != null}"
+				dataProvider="{dpDisableTrigger}" dragDrop="cliEDTeriggerDrop(event)" itemEditEnd="editAETrigger(event);">
+		        <mx:columns>
+		            <mx:DataGridColumn width="130" dataField="title" headerText="action" editable="false" />
+		            <!-- <mx:DataGridColumn dataField="source" headerText="source" editable="false" /> -->
+					<mx:DataGridColumn	width="60" headerText="effectif"
+							dataField="effectivEvt" editorDataField="value" rendererIsEditor="true"
+							itemRenderer="flexmapeditor.view.components.renderer.OVTEffectivEventRenderer" />
+					<mx:DataGridColumn width="50" dataField="exec" headerText="à exec." editorDataField="value">
+						<mx:itemEditor>
+							<mx:Component>
+								<mx:NumericStepper maximum="50" />
+							</mx:Component>
+						</mx:itemEditor>
+					</mx:DataGridColumn>
+		        </mx:columns>
+		    </mx:DataGrid>
+		</mx:Box>
+		<mx:Box width="100%" label="modifie action(s)">
+				<!-- <mx:Label text="Modifier d'autres actions :"/> -->
+			<mx:Button id="btRemOvTrigger" label="supr" click="editOverrideTrigger(event)"/>
+		    <mx:DataGrid id="cliOverrideTrigger" width="100%" rowCount="3" editable="true"
+				dragEnabled="true" dropEnabled="{trigger != null}" dragMoveEnabled="{trigger != null}"
+				itemDoubleClick="editOverrideTrigger(event)" doubleClickEnabled="true"
+				dataProvider="{dpOverrideTriggers}" dragDrop="cliOverrideTriggerHandler(event)" itemEditEnd="editOverrideTrigger(event);">
+		        <mx:columns>
+		            <mx:DataGridColumn width="130" dataField="title" headerText="action" editable="false" />
+		            <!-- <mx:DataGridColumn dataField="source" headerText="source" editable="false" /> -->
+					<mx:DataGridColumn	width="60" headerText="effectif"
+							dataField="effectivEvt" editorDataField="value" rendererIsEditor="true"
+							itemRenderer="flexmapeditor.view.components.renderer.OVTEffectivEventRenderer" />
+					<mx:DataGridColumn width="50" dataField="exec" headerText="à exec." editorDataField="value">
+						<mx:itemEditor>
+							<mx:Component>
+								<mx:NumericStepper maximum="50" />
+							</mx:Component>
+						</mx:itemEditor>
+					</mx:DataGridColumn>
+		        </mx:columns>
+		    </mx:DataGrid>
+		</mx:Box>
+		<!-- Option Ecrire variables -->
+		<fmecomp:TriggerForm0WriteEnv label="Variables" trigger="{trigger}" />
+		<!-- Option Bonus -->
+		<fmecomp:TriggerForm0Bonus label="Bonus" trigger="{trigger}" />
+	</mx:TabNavigator>
+	
+</mx:Box>
